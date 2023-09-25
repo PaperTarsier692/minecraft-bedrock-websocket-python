@@ -88,7 +88,7 @@ def cmd(command:str, arguments=None):
             match = re.match(f'{command} (\w+)', msg_b.get('message'), re.IGNORECASE)
         elif arguments == 'discord':
             if msg_b.get('type') == 'chat':
-                match = f"<**{msg_b.get('sender')}**> {msg_b.get('message')}"
+                match = {'message' : msg_b.get('message'), 'sender': msg_b.get("sender")}
                 return True
             else:
                 return False
@@ -236,15 +236,17 @@ def discord_bot():
                     reply = f'§l§9Discord §r§8| §r{message.author.display_name}§7: §r{await clean_message(message.content, message)}'
                 elif message_style == 'Default':
                     reply = f'<{message.author.display_name}> {await clean_message(message.content, message)}'
-                #d_messages.append(reply)
                 await send(reply, '@a[tag=!off]')
         
     async def d_send_messages():
         global webhook_request
         while True:
             for message in m_messages:
-                await channel.send(message)
-                m_messages.remove(message)
+                if message['sender'] in loaded_accounts['synced_webhooks']:
+                    await 
+                else:
+                    await channel.send(message)
+                    m_messages.remove(message)
             if webhook_request != False:
                 with open(f'{path}/synced_accounts.json', 'r') as f:
                     accounts = json.load(f)
@@ -270,7 +272,7 @@ def discord_bot():
         if max_characters > -1 and len(string) > max_characters:
             await error(message, '1️⃣', 'crit')
             return False
-        if string.isspace():
+        if string.replace(' ', '') == '':
             await error(message, '0️⃣', 'crit')
             return False
         else:
