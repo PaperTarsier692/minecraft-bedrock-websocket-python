@@ -10,12 +10,12 @@ import datetime
 import threading
 import websockets
 import configparser
-import discord_webhook
+from discord_webhook import AsyncDiscordWebhook
 from uuid import uuid4
 from requests import get
 from discord.ext import commands
 
-global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style
+global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts
 
 def setup():
     global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b
@@ -115,7 +115,7 @@ async def wait_for_response(uuid):
     while True:
         resp_json = msg
         if 'header' in resp_json and 'requestId' in resp_json['header'] and resp_json['header']['requestId'] == str(uuid):
-            return resp_json['body']['statusMessage']#.replace('\\n', '\n')
+            return resp_json['body']['statusMessage']
 
 async def mineproxy(websocket):
     global websocket_var, webhook_request, loaded_accounts, msg, msg_b
@@ -232,20 +232,23 @@ def discord_bot():
                 await message.channel.send(await send('/list', response=True))
 
             elif await clean_message(message.content, message):
+                author = message.author.display_name
+                if message.author in loaded_accounts['synced_names']:
+                    author = loaded_accounts['synced_names'][get_key(message.author)]
                 if message_style == 'Highlander':
-                    reply = f'§l§9Discord §r§8| §r{message.author.display_name}§7: §r{await clean_message(message.content, message)}'
+                    reply = f'§l§9Discord §r§8| §r{author}§7: §r{await clean_message(message.content, message)}'
                 elif message_style == 'Default':
-                    reply = f'<{message.author.display_name}> {await clean_message(message.content, message)}'
+                    reply = f'<{author}> {await clean_message(message.content, message)}'
                 await send(reply, '@a[tag=!off]')
         
     async def d_send_messages():
-        global webhook_request
+        global webhook_request, mc_only_synced_accounts
         while True:
             for message in m_messages:
                 if message['sender'] in loaded_accounts['synced_webhooks']:
-                    await 
-                else:
-                    await channel.send(message)
+                    await send_webhook(get_key(loaded_accounts['synced_webhooks']), message['message'])
+                elif mc_only_synced_accounts:
+                    await channel.send(f'**<{message["sender"]}>** {message["message"]}')
                     m_messages.remove(message)
             if webhook_request != False:
                 with open(f'{path}/synced_accounts.json', 'r') as f:
@@ -259,6 +262,9 @@ def discord_bot():
                     json.dump(accounts, f, indent=4)
                 webhook_request = False
             await asyncio.sleep(check_interval)
+
+    async def send_webhook(webhook_url, message):
+        await AsyncDiscordWebhook(url=webhook_url, content=message).execute()
 
     async def clean_message(string, message):
         if not allow_emojis:
