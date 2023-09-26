@@ -18,7 +18,7 @@ from discord.ext import commands
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts
 
 def setup():
-    global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b
+    global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b, loaded_accounts
     d_messages, m_messages, running, webhook_request, msg = [], [], False, False, ''
     path = os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))
     date = datetime.datetime.now()
@@ -196,6 +196,7 @@ async def init_websocket():
 
 
 def discord_bot():
+    global loaded_accounts
     loop_discord = asyncio.new_event_loop()
     asyncio.set_event_loop(loop_discord)
     bot = commands.Bot(intents=discord.Intents.all())
@@ -230,11 +231,14 @@ def discord_bot():
 
             elif message.content.lower() == '!list':
                 await message.channel.send(await send('/list', response=True))
+                
+            elif message.content.lower() == '!kill':
+                exit()
 
             elif await clean_message(message.content, message):
                 author = message.author.display_name
                 if message.author in loaded_accounts['synced_names']:
-                    author = loaded_accounts['synced_names'][get_key(message.author)]
+                    author = loaded_accounts['synced_names'][message.author]
                 if message_style == 'Highlander':
                     reply = f'§l§9Discord §r§8| §r{author}§7: §r{await clean_message(message.content, message)}'
                 elif message_style == 'Default':
@@ -246,8 +250,8 @@ def discord_bot():
         while True:
             for message in m_messages:
                 if message['sender'] in loaded_accounts['synced_webhooks']:
-                    await send_webhook(get_key(loaded_accounts['synced_webhooks']), message['message'])
-                elif mc_only_synced_accounts:
+                    await send_webhook(loaded_accounts['synced_webhooks'][message['sender']], message['message'])
+                elif not mc_only_synced_accounts:
                     await channel.send(f'**<{message["sender"]}>** {message["message"]}')
                     m_messages.remove(message)
             if webhook_request != False:
