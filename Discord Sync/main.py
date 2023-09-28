@@ -196,7 +196,7 @@ async def init_websocket():
 
 
 def discord_bot():
-    global loaded_accounts
+    global loaded_accounts, path
     loop_discord = asyncio.new_event_loop()
     asyncio.set_event_loop(loop_discord)
     bot = commands.Bot(intents=discord.Intents.all())
@@ -216,7 +216,7 @@ def discord_bot():
     
     @bot.event
     async def on_message(message):
-        if message.author == bot.user:
+        if message.author == bot.user or message.webhook_id is not None:
             return
         if message.channel == channel and running:
             if message.content.lower() == '!account sync':
@@ -234,11 +234,13 @@ def discord_bot():
                 
             elif message.content.lower() == '!kill':
                 exit()
+                
 
             elif await clean_message(message.content, message):
-                author = message.author.display_name
-                if message.author in loaded_accounts['synced_names']:
-                    author = loaded_accounts['synced_names'][message.author]
+                author = message.author.name
+                print(author)
+                if author in loaded_accounts['synced_names']:
+                    author = loaded_accounts['synced_names'][message.author.name]
                 if message_style == 'Highlander':
                     reply = f'§l§9Discord §r§8| §r{author}§7: §r{await clean_message(message.content, message)}'
                 elif message_style == 'Default':
@@ -251,15 +253,19 @@ def discord_bot():
             for message in m_messages:
                 if message['sender'] in loaded_accounts['synced_webhooks']:
                     await send_webhook(loaded_accounts['synced_webhooks'][message['sender']], message['message'])
+                    m_messages.remove(message)
                 elif not mc_only_synced_accounts:
                     await channel.send(f'**<{message["sender"]}>** {message["message"]}')
                     m_messages.remove(message)
+
             if webhook_request != False:
                 with open(f'{path}/synced_accounts.json', 'r') as f:
                     accounts = json.load(f)
                 guild = channel.guild
                 member = discord.utils.get(guild.members, name=webhook_request[0])
-                webhook = await channel.create_webhook(name=webhook_request[1], avatar=requests.get(member.avatar.url).content, reason="WebHook für Minecraft/Discord Sync")
+                print(webhook_request[0])
+                print(member.display_name)
+                webhook = await channel.create_webhook(name=member.display_name, avatar=requests.get(member.avatar.url).content, reason="WebHook für Minecraft/Discord Sync")
                 accounts.get('synced_webhooks').update({f'{webhook_request[1]}': f'{webhook.url}'})
                 accounts.get('pending_webhooks').pop(member.name, None)
                 with open(f'{path}/synced_accounts.json', 'w') as f:
