@@ -7,13 +7,14 @@ import asyncio
 import discord
 import inspect
 import datetime
+import pyperclip
 import threading
 import websockets
 import configparser
-from discord_webhook import AsyncDiscordWebhook
 from uuid import uuid4
 from requests import get
 from discord.ext import commands
+from discord_webhook import AsyncDiscordWebhook
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts
 
@@ -44,8 +45,6 @@ def load_accounts():
     global loaded_accounts
     with open(f'{path}/synced_accounts.json', 'r') as f:
         loaded_accounts = json.load(f)
-    
-
 
 def auto_convert(value):
     try: return int(value)
@@ -70,14 +69,12 @@ def remove_emojis(text):
                            "]+", flags = re.UNICODE)
     return regrex_pattern.sub(r'',text)
 
-
 def clean_logs():
     logs = os.listdir(f'{path}/logs')
     for log in logs:
         if int(log.replace('_', '').replace('.txt', '')) < int(date.replace('_', '')) - log_delete_time:
             print(f'Der Log "{log}" wird entfernt')
             os.remove(f'{path}/logs/{log}')
-
 
 def cmd(command:str, arguments=None):
     if msg_b.get('message') != None:
@@ -95,6 +92,7 @@ def cmd(command:str, arguments=None):
         return match
     return False
 
+
 async def send(cmd:str, selector = '@a', response=False):
     uuid = uuid4()
     msg = {"header": {"version": 1,"requestId": f'{uuid}',"messagePurpose": "commandRequest","messageType": "commandRequest"},"body": {"version": 1,"commandLine": cmd,"origin": {"type": "player"}}}
@@ -109,7 +107,7 @@ async def send(cmd:str, selector = '@a', response=False):
         except asyncio.TimeoutError:
             print(f"Timeout nachdem 10 Sekunden auf eine Antwort gewarten worden ist.")
             return None
-            
+        
 async def wait_for_response(uuid):
     global msg
     while True:
@@ -117,8 +115,9 @@ async def wait_for_response(uuid):
         if 'header' in resp_json and 'requestId' in resp_json['header'] and resp_json['header']['requestId'] == str(uuid):
             return resp_json['body']['statusMessage']
 
+
 async def mineproxy(websocket):
-    global websocket_var, webhook_request, loaded_accounts, msg, msg_b
+    global websocket_var, webhook_request, loaded_accounts, msg, msg_b, block_pings
     websocket_var = websocket
     
     tasks = [await send(item) for item in d_messages]
@@ -127,7 +126,7 @@ async def mineproxy(websocket):
     print('Verbunden')
     global running
     running = True
-    
+
     async def send_messages():
         while True:
             for message in d_messages:
@@ -173,6 +172,7 @@ async def mineproxy(websocket):
 
             elif cmd('', 'discord'):
                 m_messages.append(match)
+                 
     
 
 async def init_websocket():
@@ -183,15 +183,15 @@ async def init_websocket():
         public_ip = get('https://api.ipify.org').content.decode('utf8')
         print(f'Websocket startet über Public IP: {public_ip}')
         print(f'/connect {public_ip}:{port}')
+        if copy_command: pyperclip.copy(f'/connect {public_ip}:{port}')
     else:
         ip = 'localhost'
         print('Websocket startet über Private IP')
         print(f'/connect localhost:{port}')
+        if copy_command: pyperclip.copy(f'/connect localhost:{port}')
     await websockets.serve(mineproxy, ip, port)
     print('Bereit')
     await asyncio.Future()
-
-
 
 
 
@@ -224,6 +224,7 @@ def discord_bot():
                 await message.author.send(f'In Minecraft schreib: !Account sync {password}')
                 accounts = loaded_accounts
                 accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
+                accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
                     
                 with open(f'{path}/synced_accounts.json', 'w') as f:
                     json.dump(accounts, f, indent=4)
@@ -252,10 +253,12 @@ def discord_bot():
         while True:
             for message in m_messages:
                 if message['sender'] in loaded_accounts['synced_webhooks']:
-                    await send_webhook(loaded_accounts['synced_webhooks'][message['sender']], message['message'])
+                    if not await minecraft_clean_message(message["message"]) == False:
+                        await send_webhook(loaded_accounts['synced_webhooks'][message['sender']], await minecraft_clean_message(message["message"]))
                     m_messages.remove(message)
                 elif not mc_only_synced_accounts:
-                    await channel.send(f'**<{message["sender"]}>** {message["message"]}')
+                    if not await minecraft_clean_message(message["message"]) == False:
+                        await channel.send(f'**<{message["sender"]}>** {await minecraft_clean_message(message["message"])}')
                     m_messages.remove(message)
 
             if webhook_request != False:
@@ -263,11 +266,11 @@ def discord_bot():
                     accounts = json.load(f)
                 guild = channel.guild
                 member = discord.utils.get(guild.members, name=webhook_request[0])
-                print(webhook_request[0])
-                print(member.display_name)
-                webhook = await channel.create_webhook(name=member.display_name, avatar=requests.get(member.avatar.url).content, reason="WebHook für Minecraft/Discord Sync")
+                name = accounts['pending_webhooks_display_names'][webhook_request[0]]
+                webhook = await channel.create_webhook(name=name, avatar=requests.get(member.avatar.url).content, reason="WebHook für Minecraft/Discord Sync")
                 accounts.get('synced_webhooks').update({f'{webhook_request[1]}': f'{webhook.url}'})
                 accounts.get('pending_webhooks').pop(member.name, None)
+                accounts.get('pending_webhooks_display_names').pop(member.name, None)
                 with open(f'{path}/synced_accounts.json', 'w') as f:
                     json.dump(accounts, f, indent=4)
                 webhook_request = False
@@ -293,7 +296,19 @@ def discord_bot():
             return False
         else:
             return string
-            
+    
+    async def minecraft_clean_message(string):
+        if not allow_links:
+            string = re.sub(r'http\S+', '', string)
+        if max_characters > -1 and len(string) > max_characters:
+            return False
+        if block_pings != 'disabled':
+            if block_pings == 'all':
+                string = re.sub(r'<@.*?>', '', string).replace('@everyone', '').replace('@here', '')
+        if string.replace(' ', '') == '':
+            return False
+        else:
+            return string
 
 
     loop_discord.create_task(d_send_messages())
