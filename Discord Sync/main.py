@@ -35,6 +35,7 @@ def setup():
         os.mkdir(f'{path}/logs')
     
     load_config()
+    restore_accounts_file()
     load_accounts()
     if not log_delete_time == -1: clean_logs()
 
@@ -56,6 +57,12 @@ def load_config():
         if config_settings[setting].replace(' ', '') == '':
             print_color(f'ACHTUNG: {setting} ist nicht im Config angegeben!', 'red')
             ask_user_exit()
+
+def restore_accounts_file():
+    if not os.path.exists(f'{path}/synced_accounts.json'):
+        print_color('synced_accounts.json wurde gelöscht, lädt die Version von GitHub herunter', 'yellow')
+        with open(f'{path}/synced_accounts.json', 'w', encoding='utf-8') as f:
+                f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/synced_accounts.json').text.replace('\r\n', '\n'))
 
 def load_accounts():
     global loaded_accounts
@@ -253,7 +260,8 @@ def discord_bot():
         if message.author == bot.user or message.webhook_id is not None:
             return
         if message.channel == channel and running:
-            if message.content.lower() == '!account sync':
+            content = message.content.lower()
+            if content == '!account sync':
                 password = secrets.token_hex(8)
                 await message.author.send(f'In Minecraft schreib: !Account sync {password}')
                 accounts = loaded_accounts
@@ -264,10 +272,10 @@ def discord_bot():
                     json.dump(accounts, f, indent=4)
                 load_accounts()
 
-            elif message.content.lower() == '!list':
+            elif content == '!list':
                 await message.channel.send(await send('/list', response=True))
-                
-            elif message.content.lower() == '!kill':
+     
+            elif content == '!kill':
                 if message.author.guild_permissions.administrator:
                     print_color(f'Bot durch {message.author} beendet', 'red')
                     asyncio.sleep(3)
