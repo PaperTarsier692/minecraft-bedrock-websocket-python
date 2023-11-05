@@ -207,7 +207,6 @@ async def mineproxy(websocket):
                     await send(f'§l§8System §r§7: Account erfolgreich synchronisiert!§r', '@sender')
                 else: 
                     await send(f'§l§8System §r§7: Falsches Passwort!§r', '@sender')
-                    
 
             elif cmd('', 'discord'):
                 m_messages.append(match)
@@ -217,17 +216,21 @@ async def mineproxy(websocket):
 async def init_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
     if public:
         ip = '0.0.0.0'
         public_ip = get('https://api.ipify.org').content.decode('utf8')
         print(f'Websocket startet über Public IP: {public_ip}')
-        print(f'/connect {public_ip}:{port}')
-        if copy_command: pyperclip.copy(f'/connect {public_ip}:{port}')
+        copy_string = f'/connect {public_ip}:{port}'
     else:
         ip = 'localhost'
         print('Websocket startet über Private IP')
-        print(f'/connect localhost:{port}')
-        if copy_command: pyperclip.copy(f'/connect localhost:{port}')
+        copy_string = f'/connect localhost:{port}'
+    
+    if copy_command and pyperclip.paste() != copy_string: 
+        pyperclip.copy(copy_string)
+    else:
+        print_color(copy_command, 'blue')
     await websockets.serve(mineproxy, ip, port)
     print('Bereit')
     await asyncio.Future()
@@ -253,7 +256,7 @@ def discord_bot():
             print_color('Fehler: Kanal nicht gefunden!', 'red')
             ask_user_exit()
         print(f'Login mit {bot.user}')
-        print(f'Belauscht Kanal {channel} in Server {channel.guild.name}')
+        print(f'Belauscht Kanal "{channel}" in Server "{channel.guild.name}"')
     
     @bot.event
     async def on_message(message):
@@ -280,12 +283,13 @@ def discord_bot():
                     print_color(f'Bot durch {message.author} beendet', 'red')
                     asyncio.sleep(3)
                     exit()
-                
 
             elif await clean_message(message.content, message):
                 author = message.author.name
                 if author in loaded_accounts['synced_names']:
                     author = loaded_accounts['synced_names'][message.author.name]
+                else:
+                    author = message.author.display_name
                 if message_style == 'Highlander':
                     reply = f'§l§9Discord §r§8| §r{author}§7: §r{await clean_message(message.content, message)}'
                 elif message_style == 'Default':
