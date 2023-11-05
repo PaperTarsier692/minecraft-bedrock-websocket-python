@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 import json
 import requests
 import secrets
@@ -14,9 +15,10 @@ import configparser
 from uuid import uuid4
 from requests import get
 from discord.ext import commands
+from colorama import init
 from discord_webhook import AsyncDiscordWebhook
 
-global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts
+global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command
 
 def setup():
     global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b, loaded_accounts
@@ -25,21 +27,35 @@ def setup():
     date = datetime.datetime.now()
     print(f'{date.day}. {date.month}. {date.year}')
     date = f'{date.year}_{date.month}_{date.day}'
-    #with open(f'{path}/synced_accounts.json', 'r') as f:
-    #    accounts = json.load(f)
+    init()
     print(f'Datei ausgeführt in {path}\\')
 
+    if not os.path.exists(f'{path}/logs'):
+        print_color('Erstellt einen Ordner für die Logs', 'yellow')
+        os.mkdir(f'{path}/logs')
     
+    load_config()
+    load_accounts()
+    if not log_delete_time == -1: clean_logs()
+
+def load_config():
     config = configparser.ConfigParser()
     config.optionxform = lambda option: option
-    config.read(f'{path}/settings.cfg')
+    try:
+        config.read(f'{path}/settings.cfg')
+    except configparser.ParsingError:
+        if yes_no('Config Datei ist inkorrekt, soll sie zurückgesetzt werden? (Y/n)', 'red'):
+            with open(f'{path}/settings.cfg', 'w', encoding='utf-8') as f:
+                f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/settings.cfg').text.replace('\r\n', '\n'))
+        else:
+            ask_user_exit()
+        config.read(f'{path}/settings.cfg')
     config_settings = config['Highlander Discord Bot Settings']
     for setting in config_settings:
         globals()[setting.lower()] = auto_convert(config_settings[setting])
-        
-    if not log_delete_time == -1: clean_logs()
-    load_accounts()
-    
+        if config_settings[setting].replace(' ', '') == '':
+            print_color(f'ACHTUNG: {setting} ist nicht im Config angegeben!', 'red')
+            ask_user_exit()
 
 def load_accounts():
     global loaded_accounts
@@ -69,11 +85,27 @@ def remove_emojis(text):
                            "]+", flags = re.UNICODE)
     return regrex_pattern.sub(r'',text)
 
+def yes_no(text, color = ''):
+    color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
+    answer = input(color + text + "\033[0m")
+    if answer.lower() not in ['y', 'j', 'n']:
+        yes_no(text)
+    return answer.lower().replace('j', 'y') == 'y'
+
+def print_color(text, color):
+    color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
+    print(color + text + "\033[0m")
+    
+def ask_user_exit():
+    _ = input("\033[91m" + 'Drücke Enter um das Programm zu schließen' + "\033[0m")
+    sys.exit()
+
+
 def clean_logs():
     logs = os.listdir(f'{path}/logs')
     for log in logs:
         if int(log.replace('_', '').replace('.txt', '')) < int(date.replace('_', '')) - log_delete_time:
-            print(f'Der Log "{log}" wird entfernt')
+            print_color(f'Der Log "{log}" wird entfernt', 'yellow')
             os.remove(f'{path}/logs/{log}')
 
 def cmd(command:str, arguments=None):
@@ -105,7 +137,7 @@ async def send(cmd:str, selector = '@a', response=False):
         try:
             return await asyncio.wait_for(wait_for_response(uuid), timeout=True)
         except asyncio.TimeoutError:
-            print(f"Timeout nachdem 10 Sekunden auf eine Antwort gewarten worden ist.")
+            print_color(f'Timeout nachdem 10 Sekunden lang auf eine Antwort von Minecraft gewarten worden ist.', 'yellow')
             return None
         
 async def wait_for_response(uuid):
@@ -123,7 +155,7 @@ async def mineproxy(websocket):
     tasks = [await send(item) for item in d_messages]
     await asyncio.gather(*tasks)
     await websocket.send(json.dumps({"body": {"eventName": "PlayerMessage"},"header": {"requestId": f'{uuid4()}',"messagePurpose": "subscribe","version": 1,"messageType": "commandRequest"}}))
-    print('Verbunden')
+    print_color('Verbunden', 'green')
     global running
     running = True
 
@@ -158,7 +190,7 @@ async def mineproxy(websocket):
                 accounts = loaded_accounts
                 user = get_key(match.group(1), accounts['pending_webhooks'])
                 if not not user:
-                    print(f'Webhook Sync von {user}')
+                    print_color(f'Webhook Sync von {user}', 'blue')
                     with open(f'{path}/synced_accounts.json', 'w') as f:
                         accounts.get('synced_names').update({f'{user}': f'{msg_b.get("sender")}'})
                         global webhook_request
@@ -210,7 +242,9 @@ def discord_bot():
     async def on_ready():
         global channel
         channel = bot.get_channel(channel_id)
-        if not channel: print('ACHTUNG: Kanal nicht gefunden!')
+        if not channel: 
+            print_color('Fehler: Kanal nicht gefunden!', 'red')
+            ask_user_exit()
         print(f'Login mit {bot.user}')
         print(f'Belauscht Kanal {channel} in Server {channel.guild.name}')
     
@@ -234,12 +268,14 @@ def discord_bot():
                 await message.channel.send(await send('/list', response=True))
                 
             elif message.content.lower() == '!kill':
-                exit()
+                if message.author.guild_permissions.administrator:
+                    print_color(f'Bot durch {message.author} beendet', 'red')
+                    asyncio.sleep(3)
+                    exit()
                 
 
             elif await clean_message(message.content, message):
                 author = message.author.name
-                print(author)
                 if author in loaded_accounts['synced_names']:
                     author = loaded_accounts['synced_names'][message.author.name]
                 if message_style == 'Highlander':
@@ -312,7 +348,10 @@ def discord_bot():
 
 
     loop_discord.create_task(d_send_messages())
-    bot.run(token)
+    try: bot.run(token)
+    except discord.errors.LoginFailure: 
+        print_color('Fehler: Einloggen bei Discord schiefgelaufen, vielleicht ein inkorrekter Token?', 'red')
+        ask_user_exit()
     
 
 
