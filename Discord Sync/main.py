@@ -291,6 +291,8 @@ def discord_bot():
                 if author in loaded_accounts['synced_names']:
                     author = loaded_accounts['synced_names'][message.author.name]
                 else:
+                    if dc_only_synced_accounts:
+                        return
                     author = message.author.display_name
                 if message_style == 'Highlander':
                     reply = f'§l§9Discord §r§8| §r{author}§7: §r{await clean_message(message.content, message)}'
@@ -310,7 +312,6 @@ def discord_bot():
                     if not await minecraft_clean_message(message["message"]) == False:
                         await channel.send(f'**<{message["sender"]}>** {await minecraft_clean_message(message["message"])}')
                     m_messages.remove(message)
-
             if webhook_request != False:
                 with open(f'{path}/synced_accounts.json', 'r') as f:
                     accounts = json.load(f)
