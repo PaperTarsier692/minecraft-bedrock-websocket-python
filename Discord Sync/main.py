@@ -230,7 +230,7 @@ async def init_websocket():
     if copy_command and pyperclip.paste() != copy_string: 
         pyperclip.copy(copy_string)
     else:
-        print_color(copy_command, 'blue')
+        print_color(copy_string, 'blue')
     await websockets.serve(mineproxy, ip, port)
     print('Bereit')
     await asyncio.Future()
@@ -265,16 +265,18 @@ def discord_bot():
         if message.channel == channel and running:
             content = message.content.lower()
             if content == '!account sync':
-                password = secrets.token_hex(8)
-                await message.author.send(f'In Minecraft schreib: !Account sync {password}')
-                accounts = loaded_accounts
-                accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
-                accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
-                    
-                with open(f'{path}/synced_accounts.json', 'w') as f:
-                    json.dump(accounts, f, indent=4)
-                load_accounts()
-
+                if message.author.name not in loaded_accounts['synced_names']:
+                    password = secrets.token_hex(8)
+                    await message.author.send(f'In Minecraft schreib: !Account sync {password}')
+                    accounts = loaded_accounts
+                    accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
+                    accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
+                        
+                    with open(f'{path}/synced_accounts.json', 'w') as f:
+                        json.dump(accounts, f, indent=4)
+                    load_accounts()
+                else: print('Ok zu schlecht für uns')
+            
             elif content == '!list':
                 await message.channel.send(await send('/list', response=True))
      
