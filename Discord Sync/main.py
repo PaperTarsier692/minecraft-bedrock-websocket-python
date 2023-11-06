@@ -17,6 +17,7 @@ from requests import get #The get command for GitHub files
 from discord.ext import commands #Commands for the Discord Bot
 from colorama import init #Coloured Outputs
 from discord_webhook import AsyncDiscordWebhook #WebHooks for the synced Accounts
+from misc_commands import yes_no, auto_convert, remove_emojis, get_key, print_color
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
 
@@ -34,14 +35,20 @@ def setup():
     if not os.path.exists(f'{path}/logs'):
         print_color(folder_created_for_logs)
         os.mkdir(f'{path}/logs')
-    
+    global setting_empty
+    setting_empty = '//red// ERROR: % ist nicht im Config angegeben!'
     load_config()
+    load_lang()
     restore_accounts_file()
     load_accounts()
-    load_lang()
     if not log_delete_time == -1: clean_logs()
     print_color(file_executed_in.replace('%', path))
     print_color(f'{date_obj.day}. {date_obj.month}. {date_obj.year}')
+
+def ask_user_exit():
+    print_color(ask_user_for_exit)
+    _ = input()
+    sys.exit()
 
 def load_config():
     config = configparser.ConfigParser()
@@ -80,49 +87,6 @@ def load_lang():
     split = lang_file.splitlines()
     for element in split:
         globals()[element.split('=', 1)[0]] = element.split('=')[1]
-
-
-def auto_convert(value):
-    try: return int(value)
-    except ValueError:
-        try: return float(value)
-        except ValueError:
-            if value.lower() in ['true', 'false']: return value.lower() == 'true'
-            else: return value
-
-def get_key(val, dict):
-   for key, value in dict.items():
-      if val == value:
-         return key
-   return False
-
-def remove_emojis(text):
-    regrex_pattern = re.compile(pattern = "["
-        u"\U0001F600-\U0001F64F"
-        u"\U0001F300-\U0001F5FF"
-        u"\U0001F680-\U0001F6FF"
-        u"\U0001F1E0-\U0001F1FF"
-                           "]+", flags = re.UNICODE)
-    return regrex_pattern.sub(r'',text)
-
-def yes_no(text, color = ''):
-    color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
-    answer = input(color + text + "\033[0m")
-    if answer.lower() not in ['y', 'j', 'n']:
-        yes_no(text)
-    return answer.lower().replace('j', 'y') == 'y'
-
-def print_color(text:str):
-    '''Print something with the given color
-    Example: print_color('//red// Text')''' 
-    text = text.replace('//red// ', "\033[91m").replace('//yellow// ', "\033[93m").replace('//green// ', "\033[92m").replace('//blue// ', "\033[94m")
-    print(text + "\033[0m")
-    
-def ask_user_exit():
-    print_color(ask_user_for_exit)
-    _ = input()
-    sys.exit()
-
 
 def clean_logs():
     logs = os.listdir(f'{path}/logs')
@@ -225,8 +189,8 @@ async def mineproxy(websocket):
 
             elif cmd('', 'discord'):
                 m_messages.append(match)
-                 
-    
+
+
 
 async def init_websocket():
     loop = asyncio.new_event_loop()
@@ -245,7 +209,7 @@ async def init_websocket():
     if copy_command and pyperclip.paste() != copy_string: 
         pyperclip.copy(copy_string)
     else:
-        print_color(copy_string, 'blue')
+        print_color(copy_string)
     await websockets.serve(mineproxy, ip, port)
     print_color(ws_ready)
     await asyncio.Future()
@@ -262,7 +226,7 @@ def discord_bot():
         if type == 'warn': await message.add_reaction('⚠')
         elif type == 'crit': await message.add_reaction('❌')
         await message.add_reaction(emoji)
-    
+
     @bot.event
     async def on_ready():
         global channel
@@ -272,7 +236,7 @@ def discord_bot():
             ask_user_exit()
         print_color(f'Login mit {bot.user}')
         print_color(f'Belauscht Kanal "{channel}" in Server "{channel.guild.name}"')
-    
+
     @bot.event
     async def on_message(message):
         if message.author == bot.user or message.webhook_id is not None:
@@ -290,7 +254,7 @@ def discord_bot():
                         json.dump(loaded_accounts, f, indent=4)
                     load_accounts()
                 else: pass
-            
+
             elif content == '!list':
                 await message.channel.send(await send('/list', response=True))
      
@@ -313,7 +277,7 @@ def discord_bot():
                 elif message_style == 'Default':
                     reply = f'<{author}> {await clean_message(message.content, message)}'
                 await send(reply, '@a[tag=!off]')
-        
+
     async def d_send_messages():
         global webhook_request, mc_only_synced_accounts
         while True:
@@ -361,7 +325,7 @@ def discord_bot():
             return False
         else:
             return string
-    
+
     async def minecraft_clean_message(string):
         if not allow_links:
             string = re.sub(r'http\S+', '', string)
@@ -381,7 +345,7 @@ def discord_bot():
     except discord.errors.LoginFailure: 
         print_color(login_error)
         ask_user_exit()
-    
+
 
 
 def main():
@@ -391,7 +355,7 @@ def main():
     dc_thread.start()
     mc_thread.join()
     dc_thread.join()
-    
+
 
 setup()
 main()
