@@ -79,7 +79,6 @@ def load_lang():
         lang_file = l.read()
     split = lang_file.splitlines()
     for element in split:
-        print(element.split('=', 1)[0], end=',')
         globals()[element.split('=', 1)[0]] = element.split('=')[1]
 
 
