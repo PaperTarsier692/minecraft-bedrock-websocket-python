@@ -210,15 +210,14 @@ async def mineproxy(websocket):
                     await send('/tag @s remove off')
                     await send(f'§l§8System §r§7: Discord Nachrichten sind sichtbar§r', '@sender')
             elif cmd('!Account sync', 'text'):
-                accounts = loaded_accounts
-                user = get_key(match.group(1), accounts['pending_webhooks'])
+                user = get_key(match.group(1), loaded_accounts['pending_webhooks'])
                 if not not user:
                     print_color(new_wh_sync.replace('%', user))
                     with open(f'{path}/synced_accounts.json', 'w') as f:
-                        accounts.get('synced_names').update({f'{user}': f'{msg_b.get("sender")}'})
+                        loaded_accounts.get('synced_names').update({f'{user}': f'{msg_b.get("sender")}'})
                         global webhook_request
                         webhook_request = ([f'{user}', f'{msg_b.get("sender")}'])
-                        json.dump(accounts, f, indent=4)
+                        json.dump(loaded_accounts, f, indent=4)
                     load_accounts()
                     await send(f'§l§8System §r§7: Account erfolgreich synchronisiert!§r', '@sender')
                 else: 
@@ -284,12 +283,11 @@ def discord_bot():
                 if message.author.name not in loaded_accounts['synced_names']:
                     password = secrets.token_hex(8)
                     await message.author.send(wh_dm_msg.replace('%', f'!Account sync {password}'))
-                    accounts = loaded_accounts
-                    accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
-                    accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
+                    loaded_accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
+                    loaded_accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
                         
                     with open(f'{path}/synced_accounts.json', 'w') as f:
-                        json.dump(accounts, f, indent=4)
+                        json.dump(loaded_accounts, f, indent=4)
                     load_accounts()
                 else: pass
             
