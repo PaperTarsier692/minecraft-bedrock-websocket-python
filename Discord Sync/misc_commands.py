@@ -1,5 +1,4 @@
-import re
-import sys
+import re #Removing Emojis
 
 def auto_convert(value):
     try: return int(value)

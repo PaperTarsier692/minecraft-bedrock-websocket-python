@@ -2,11 +2,12 @@ import re #Filter Emojis, Commands
 import os #Create Directories, Check if Path exists
 import sys #Exit
 import json #JSON Data for sending and recieving WebSocket Data
-import requests #Get the Public IP and download Files from GitHub
+import random #Bot Status getting random member
 import secrets #Create a Hex Password for the Sync
 import asyncio #Async Code execution througout the entire project
 import discord #Pycord for the Discord Bot
 import inspect #Get the Path of the currently running Pyhton File
+import requests #Get the Public IP and download Files from GitHub
 import datetime #Get the Date for the logs
 import pyperclip #Copy the command in the Clipboard
 import threading #Pseudo Multithreading
@@ -17,7 +18,7 @@ from requests import get #The get command for GitHub files
 from discord.ext import commands #Commands for the Discord Bot
 from colorama import init #Coloured Outputs
 from discord_webhook import AsyncDiscordWebhook #WebHooks for the synced Accounts
-from misc_commands import yes_no, auto_convert, remove_emojis, get_key, print_color
+from misc_commands import yes_no, auto_convert, remove_emojis, get_key, print_color #Importing my own Misc-Commands
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
 
@@ -304,6 +305,25 @@ def discord_bot():
                     json.dump(accounts, f, indent=4)
                 webhook_request = False
             await asyncio.sleep(check_interval)
+
+    async def status():
+        counter = 0
+        while True:
+            counter += 1
+            counter %= 5
+            
+            if counter == 1:
+                await bot.change_presence(activity=discord.Game(name="Minecraft Highlander"))
+            elif counter == 2:
+                members = await send('/list', response=True).split(':')[0].splitlines()
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members[random.randint(0, len(members - 1))]))
+            elif counter == 3:
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="https://discord.gg/KwgtbJFpk4"))
+            elif counter == 4:
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="2 Uhr Nachts ft. Stellx"))
+            elif counter == 5:
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Swims Schreie"))
+            await asyncio.sleep(15)
 
     async def send_webhook(webhook_url, message):
         await AsyncDiscordWebhook(url=webhook_url, content=message).execute()
