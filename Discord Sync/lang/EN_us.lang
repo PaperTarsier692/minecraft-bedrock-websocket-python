@@ -1,0 +1,16 @@
+date_format=MM%DD%YYYY
+file_executed_in=File executed in %
+folder_created_for_logs=//yellow// Creating a folder for the logs
+config_file_broken=//red// ERROR: Config file broken, shall it be replaced with a copy from GitHub?
+setting_empty=//red// ERROR: % doesn't have a defined value in the settings!
+restore_synced_accounts=//yellow// The 'synced_accounts.json' got deleted, downloading a new copy from GitHub
+ask_user_for_exit=//red// Press enter to close the programm
+log_deleted=//yellow// The log "%" is getting deleted
+mc_timeout=//yellow// Timeout, because Minecraft didn't response in 10 seconds
+ws_public_ip=Websocket starting with the public IP: %
+ws_private_ip=Websocket starting with the private IP
+ws_ready=Ready
+ws_connected=//green// Connected
+new_wh_sync=New WebHook sync from user %
+channel_not_found=//red// ERROR: Channel not found!
+login_error=//red// ERROR: Problem with logging in to Discord, maybe a false token?

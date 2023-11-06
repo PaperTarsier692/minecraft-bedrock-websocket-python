@@ -1,0 +1,16 @@
+date_format=DD%MM%YYYY
+file_executed_in=Datei ausgeführt in %
+folder_created_for_logs=//yellow// Erstellt einen Ordner für die Logs
+config_file_broken=//red// ERROR: Config Datei ist inkorrekt, soll sie zurückgesetzt werden?
+setting_empty=//red// ERROR: % ist nicht im Config angegeben!
+restore_synced_accounts=//yellow// synced_accounts.json wurde gelöscht, lädt die Version von GitHub herunter
+ask_user_for_exit=//red// Drücke Enter um das Programm zu schließen
+log_deleted=//yellow// Der Log % wird entfernt
+mc_timeout=//yellow// Timeout nachdem 10 Sekunden lang auf eine Antwort von Minecraft gewarten worden ist.
+ws_public_ip=Websocket startet über die öffentliche IP: %
+ws_private_ip=Websocket startet über die private IP
+ws_ready=Bereit
+ws_connected=//green// Verbunden
+new_wh_sync=Neuer WebHook Sync von %
+channel_not_found=//red// ERROR: Kanal nicht gefunden!
+login_error=//red// ERROR: Einloggen bei Discord schiefgelaufen, vielleicht ein falscher Token?

@@ -1,0 +1,16 @@
+date_format=DD%MM%YYYY
+file_executed_in=Dotei ausgfirt i %
+folder_created_for_logs=//yellow// Erstölt an Ordna fürd Logs
+config_file_broken=//red// Föhla: Config Dotei is hinnig, sois vo GitHub runtaglodn werdan?
+setting_empty=//red// ERROR: % is im Config ned angegebn!
+restore_synced_accounts=//yellow// synced_accounts.json wurdat glöscht, sois vo GitHub runtaglodn werdan?
+ask_user_for_exit=//red// Drick Enter ums Progromm zu schließon
+log_deleted=//yellow// Da Log % wird glöscht
+mc_timeout=//yellow// Timeout, wö 10 Sekunden long auf ane Antwurt vo Minecraft gwarten worden is.
+ws_public_ip=Websocket startet üba di öffentliche IP: %
+ws_private_ip=Websocket startet üba die private IP
+ws_ready=Breit
+ws_connected=//green// Verbundan
+new_wh_sync=Neicha WebHook sync vom %
+channel_not_found=//red// ERROR: Kanoi ned gfunden!
+login_error=//red// ERROR: Einloggn bei Discord schiefglaufen, worscheinli a foischer Token?

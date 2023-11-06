@@ -18,17 +18,15 @@ from discord.ext import commands
 from colorama import init
 from discord_webhook import AsyncDiscordWebhook
 
-global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command
+global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
 
 def setup():
     global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b, loaded_accounts
     d_messages, m_messages, running, webhook_request, msg = [], [], False, False, ''
     path = os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))
     date = datetime.datetime.now()
-    print(f'{date.day}. {date.month}. {date.year}')
     date = f'{date.year}_{date.month}_{date.day}'
     init()
-    print(f'Datei ausgeführt in {path}\\')
 
     if not os.path.exists(f'{path}/logs'):
         print_color('Erstellt einen Ordner für die Logs', 'yellow')
@@ -37,7 +35,10 @@ def setup():
     load_config()
     restore_accounts_file()
     load_accounts()
+    load_lang()
     if not log_delete_time == -1: clean_logs()
+    print(file_executed_in.replace('%', path))
+    print(f'{date.day}. {date.month}. {date.year}')
 
 def load_config():
     config = configparser.ConfigParser()
@@ -68,6 +69,15 @@ def load_accounts():
     global loaded_accounts
     with open(f'{path}/synced_accounts.json', 'r') as f:
         loaded_accounts = json.load(f)
+
+def load_lang():
+    global lang_file, language
+    with open(f'{path}/lang/{language}.lang', 'r', encoding='utf-8') as l:
+        lang_file = l.read()
+    split = lang_file.splitlines()
+    for element in split:
+        globals()[element.split('=', 1)[0]] = element.split('=')[1]
+
 
 def auto_convert(value):
     try: return int(value)
