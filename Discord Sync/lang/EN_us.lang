@@ -14,3 +14,6 @@ ws_connected=//green// Connected
 new_wh_sync=New WebHook sync from user %
 channel_not_found=//red// ERROR: Channel not found!
 login_error=//red// ERROR: Problem with logging in to Discord, maybe a false token?
+wh_dm_msg=To finish your account synchronisation, you have to write:\n%\nin the Minecraft chat
+bot_killed_dc=The bot got terminated by %
+wh_reason=WebHook for Minecraft/Discord Sync

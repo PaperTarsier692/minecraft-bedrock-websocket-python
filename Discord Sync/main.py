@@ -1,35 +1,38 @@
-import re
-import os
-import sys
-import json
-import requests
-import secrets
-import asyncio
-import discord
-import inspect
-import datetime
-import pyperclip
-import threading
-import websockets
-import configparser
-from uuid import uuid4
-from requests import get
-from discord.ext import commands
-from colorama import init
-from discord_webhook import AsyncDiscordWebhook
+import re #Filter Emojis, Commands
+import os #Create Directories, Check if Path exists
+import sys #Exit
+import json #JSON Data for sending and recieving WebSocket Data
+import requests #Get the Public IP and download Files from GitHub
+import secrets #Create a Hex Password for the Sync
+import asyncio #Async Code execution througout the entire project
+import discord #Pycord for the Discord Bot
+import inspect #Get the Path of the currently running Pyhton File
+import datetime #Get the Date for the logs
+import pyperclip #Copy the command in the Clipboard
+import threading #Pseudo Multithreading
+import websockets #Websockets for Minecraft
+import configparser #Read the Config
+from uuid import uuid4 #Generate UUIDs for Minecraft
+from requests import get #The get command for GitHub files
+from discord.ext import commands #Commands for the Discord Bot
+from colorama import init #Coloured Outputs
+from discord_webhook import AsyncDiscordWebhook #WebHooks for the synced Accounts
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
+
+global date_format,file_executed_in,folder_created_for_logs,config_file_broken,setting_empty,restore_synced_accounts,ask_user_for_exit,log_deleted,mc_timeout,ws_public_ip,ws_private_ip,ws_ready,ws_connected,new_wh_sync,channel_not_found,login_error,wh_dm_msg,bot_killed_dc,wh_reason
+#This ist just temporary and could be removed (but your IDE is gonna throw a lot of variable undefined errors)
 
 def setup():
     global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b, loaded_accounts
     d_messages, m_messages, running, webhook_request, msg = [], [], False, False, ''
     path = os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))
-    date = datetime.datetime.now()
-    date = f'{date.year}_{date.month}_{date.day}'
+    date_obj = datetime.datetime.now()
+    date = f'{date_obj.year}_{date_obj.month}_{date_obj.day}'
     init()
 
     if not os.path.exists(f'{path}/logs'):
-        print_color('Erstellt einen Ordner für die Logs', 'yellow')
+        print_color(folder_created_for_logs)
         os.mkdir(f'{path}/logs')
     
     load_config()
@@ -37,8 +40,8 @@ def setup():
     load_accounts()
     load_lang()
     if not log_delete_time == -1: clean_logs()
-    print(file_executed_in.replace('%', path))
-    print(f'{date.day}. {date.month}. {date.year}')
+    print_color(file_executed_in.replace('%', path))
+    print_color(f'{date_obj.day}. {date_obj.month}. {date_obj.year}')
 
 def load_config():
     config = configparser.ConfigParser()
@@ -46,7 +49,7 @@ def load_config():
     try:
         config.read(f'{path}/settings.cfg')
     except configparser.ParsingError:
-        if yes_no('Config Datei ist inkorrekt, soll sie zurückgesetzt werden? (Y/n)', 'red'):
+        if yes_no(config_file_broken):
             with open(f'{path}/settings.cfg', 'w', encoding='utf-8') as f:
                 f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/settings.cfg').text.replace('\r\n', '\n'))
         else:
@@ -56,12 +59,12 @@ def load_config():
     for setting in config_settings:
         globals()[setting.lower()] = auto_convert(config_settings[setting])
         if config_settings[setting].replace(' ', '') == '':
-            print_color(f'ACHTUNG: {setting} ist nicht im Config angegeben!', 'red')
+            print_color(setting_empty.replace('%', setting))
             ask_user_exit()
 
 def restore_accounts_file():
     if not os.path.exists(f'{path}/synced_accounts.json'):
-        print_color('synced_accounts.json wurde gelöscht, lädt die Version von GitHub herunter', 'yellow')
+        print_color(restore_synced_accounts)
         with open(f'{path}/synced_accounts.json', 'w', encoding='utf-8') as f:
                 f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/synced_accounts.json').text.replace('\r\n', '\n'))
 
@@ -76,6 +79,7 @@ def load_lang():
         lang_file = l.read()
     split = lang_file.splitlines()
     for element in split:
+        print(element.split('=', 1)[0], end=',')
         globals()[element.split('=', 1)[0]] = element.split('=')[1]
 
 
@@ -109,12 +113,15 @@ def yes_no(text, color = ''):
         yes_no(text)
     return answer.lower().replace('j', 'y') == 'y'
 
-def print_color(text, color):
-    color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
-    print(color + text + "\033[0m")
+def print_color(text:str):
+    '''Print something with the given color
+    Example: print_color('//red// Text')''' 
+    text = text.replace('//red// ', "\033[91m").replace('//yellow// ', "\033[93m").replace('//green// ', "\033[92m").replace('//blue// ', "\033[94m")
+    print(text + "\033[0m")
     
 def ask_user_exit():
-    _ = input("\033[91m" + 'Drücke Enter um das Programm zu schließen' + "\033[0m")
+    print_color(ask_user_for_exit)
+    _ = input()
     sys.exit()
 
 
@@ -122,7 +129,7 @@ def clean_logs():
     logs = os.listdir(f'{path}/logs')
     for log in logs:
         if int(log.replace('_', '').replace('.txt', '')) < int(date.replace('_', '')) - log_delete_time:
-            print_color(f'Der Log "{log}" wird entfernt', 'yellow')
+            print_color(log_deleted.replace('%', log))
             os.remove(f'{path}/logs/{log}')
 
 def cmd(command:str, arguments=None):
@@ -154,7 +161,7 @@ async def send(cmd:str, selector = '@a', response=False):
         try:
             return await asyncio.wait_for(wait_for_response(uuid), timeout=True)
         except asyncio.TimeoutError:
-            print_color(f'Timeout nachdem 10 Sekunden lang auf eine Antwort von Minecraft gewarten worden ist.', 'yellow')
+            print_color(mc_timeout)
             return None
         
 async def wait_for_response(uuid):
@@ -172,7 +179,7 @@ async def mineproxy(websocket):
     tasks = [await send(item) for item in d_messages]
     await asyncio.gather(*tasks)
     await websocket.send(json.dumps({"body": {"eventName": "PlayerMessage"},"header": {"requestId": f'{uuid4()}',"messagePurpose": "subscribe","version": 1,"messageType": "commandRequest"}}))
-    print_color('Verbunden', 'green')
+    print_color(ws_connected)
     global running
     running = True
 
@@ -199,7 +206,7 @@ async def mineproxy(websocket):
             elif cmd('!Discord', 'text'):
                 if match.group(1) == 'disable':
                     await send('/tag @s add off')
-                    #await send(f'§l§8System §r§7: Discord Nachrichten sind unsichtbar§r', '@sender')
+                    await send(f'§l§8System §r§7: Discord Nachrichten sind unsichtbar§r', '@sender')
                 elif match.group(1) == 'enable':
                     await send('/tag @s remove off')
                     await send(f'§l§8System §r§7: Discord Nachrichten sind sichtbar§r', '@sender')
@@ -207,7 +214,7 @@ async def mineproxy(websocket):
                 accounts = loaded_accounts
                 user = get_key(match.group(1), accounts['pending_webhooks'])
                 if not not user:
-                    print_color(f'Webhook Sync von {user}', 'blue')
+                    print_color(new_wh_sync.replace('%', user))
                     with open(f'{path}/synced_accounts.json', 'w') as f:
                         accounts.get('synced_names').update({f'{user}': f'{msg_b.get("sender")}'})
                         global webhook_request
@@ -230,11 +237,11 @@ async def init_websocket():
     if public:
         ip = '0.0.0.0'
         public_ip = get('https://api.ipify.org').content.decode('utf8')
-        print(f'Websocket startet über Public IP: {public_ip}')
+        print_color(ws_public_ip.replace('%', public_ip))
         copy_string = f'/connect {public_ip}:{port}'
     else:
         ip = 'localhost'
-        print('Websocket startet über Private IP')
+        print_color(ws_private_ip)
         copy_string = f'/connect localhost:{port}'
     
     if copy_command and pyperclip.paste() != copy_string: 
@@ -242,7 +249,7 @@ async def init_websocket():
     else:
         print_color(copy_string, 'blue')
     await websockets.serve(mineproxy, ip, port)
-    print('Bereit')
+    print_color(ws_ready)
     await asyncio.Future()
 
 
@@ -263,10 +270,10 @@ def discord_bot():
         global channel
         channel = bot.get_channel(channel_id)
         if not channel: 
-            print_color('Fehler: Kanal nicht gefunden!', 'red')
+            print_color(channel_not_found)
             ask_user_exit()
-        print(f'Login mit {bot.user}')
-        print(f'Belauscht Kanal "{channel}" in Server "{channel.guild.name}"')
+        print_color(f'Login mit {bot.user}')
+        print_color(f'Belauscht Kanal "{channel}" in Server "{channel.guild.name}"')
     
     @bot.event
     async def on_message(message):
@@ -277,7 +284,7 @@ def discord_bot():
             if content == '!account sync':
                 if message.author.name not in loaded_accounts['synced_names']:
                     password = secrets.token_hex(8)
-                    await message.author.send(f'In Minecraft schreib: !Account sync {password}')
+                    await message.author.send(wh_dm_msg.replace('%', f'!Account sync {password}'))
                     accounts = loaded_accounts
                     accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
                     accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
@@ -285,14 +292,14 @@ def discord_bot():
                     with open(f'{path}/synced_accounts.json', 'w') as f:
                         json.dump(accounts, f, indent=4)
                     load_accounts()
-                else: print('Ok zu schlecht für uns')
+                else: pass
             
             elif content == '!list':
                 await message.channel.send(await send('/list', response=True))
      
             elif content == '!kill':
                 if message.author.guild_permissions.administrator:
-                    print_color(f'Bot durch {message.author} beendet', 'red')
+                    print_color(bot_killed_dc.replace('%', message.author.name))
                     asyncio.sleep(3)
                     exit()
 
@@ -328,7 +335,7 @@ def discord_bot():
                 guild = channel.guild
                 member = discord.utils.get(guild.members, name=webhook_request[0])
                 name = accounts['pending_webhooks_display_names'][webhook_request[0]]
-                webhook = await channel.create_webhook(name=name, avatar=requests.get(member.avatar.url).content, reason="WebHook für Minecraft/Discord Sync")
+                webhook = await channel.create_webhook(name=name, avatar=requests.get(member.avatar.url).content, reason=wh_reason)
                 accounts.get('synced_webhooks').update({f'{webhook_request[1]}': f'{webhook.url}'})
                 accounts.get('pending_webhooks').pop(member.name, None)
                 accounts.get('pending_webhooks_display_names').pop(member.name, None)
@@ -375,7 +382,7 @@ def discord_bot():
     loop_discord.create_task(d_send_messages())
     try: bot.run(token)
     except discord.errors.LoginFailure: 
-        print_color('Fehler: Einloggen bei Discord schiefgelaufen, vielleicht ein inkorrekter Token?', 'red')
+        print_color(login_error)
         ask_user_exit()
     
 

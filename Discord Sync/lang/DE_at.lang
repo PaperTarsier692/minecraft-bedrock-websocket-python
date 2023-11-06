@@ -14,3 +14,6 @@ ws_connected=//green// Verbundan
 new_wh_sync=Neicha WebHook sync vom %
 channel_not_found=//red// ERROR: Kanoi ned gfunden!
 login_error=//red// ERROR: Einloggn bei Discord schiefglaufen, worscheinli a foischer Token?
+wh_dm_msg=Um die anzumödn musst:\n%\nschreibn
+bot_killed_dc=Da Bot wurd vom % abgmurkst
+wh_reason=A afocher WebHook fürn Minecraft/Discord Sync
