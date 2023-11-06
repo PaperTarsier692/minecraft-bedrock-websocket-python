@@ -22,7 +22,7 @@ from misc_commands import yes_no, auto_convert, remove_emojis, get_key, print_co
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
 
-global gn_date_format, gn_file_executed_in, gn_folder_created_for_logs, gn_log_deleted, gn_config_file_broken, gn_setting_empty, gn_restore_synced_accounts, gn_ask_user_for_exit, mc_ws_timeout, mc_ws_public_ip, mc_ws_private_ip, mc_ws_ready, mc_ws_connected, mc_new_wh_sync, mc_succesful_sync, mc_wrong_password, mc_dc_messages_hidden, dc_login, dc_channel_server_message, dc_channel_not_found, dc_login_error, dc_wh_dm_msg, dc_bot_killed, dc_wh_reason
+global gn_date_format, gn_file_executed_in, gn_folder_created_for_logs, gn_log_deleted, gn_config_file_broken, gn_setting_empty, gn_restore_synced_accounts, gn_ask_user_for_exit, mc_ws_timeout, mc_ws_public_ip, mc_ws_private_ip, mc_ws_ready, mc_ws_connected, mc_new_wh_sync, mc_succesful_sync, mc_wrong_password, mc_dc_messages_hidden, dc_login, dc_channel_server_message, dc_channel_not_found, dc_login_error, dc_wh_dm_msg, dc_bot_killed, dc_wh_reason, mc_dc_messages_visible
 #This ist just temporary and could be removed (but your IDE is gonna throw a lot of variable undefined errors)
 
 def setup():
@@ -88,7 +88,6 @@ def load_lang():
     split = lang_file.splitlines()
     for element in split:
         if not element.startswith('#'):
-            print(element.split('=', 1)[0], end=', ')
             globals()[element.split('=', 1)[0]] = element.split('=')[1]
 
 def clean_logs():
@@ -237,8 +236,9 @@ def discord_bot():
         if not channel: 
             print_color(dc_channel_not_found)
             ask_user_exit()
-        print_color(dc_login.replace('%', bot.user))
-        print_color(dc_channel_server_message.replace('%1', channel).replace('%2', channel.quild.name))
+        print_color(dc_login.replace('%', str(bot.user)))
+        print_color(dc_channel_server_message.replace('%1', str(channel)).replace('%2', str(channel.guild.name)))
+        loop_discord.create_task(status())
 
     @bot.event
     async def on_message(message):
@@ -264,7 +264,7 @@ def discord_bot():
             elif content == '!kill':
                 if message.author.guild_permissions.administrator:
                     print_color(dc_bot_killed.replace('%', message.author.name))
-                    asyncio.sleep(3)
+                    await asyncio.sleep(3)
                     exit()
 
             elif await clean_message(message.content, message):
@@ -310,6 +310,8 @@ def discord_bot():
 
     async def status():
         counter = 0
+        while not running:
+            await asyncio.sleep(1)
         while True:
             counter += 1
             counter %= 5
@@ -317,12 +319,16 @@ def discord_bot():
             if counter == 1:
                 await bot.change_presence(activity=discord.Game(name="Minecraft Highlander"))
             elif counter == 2:
-                members = await send('/list', response=True).split(':')[0].splitlines()
-                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members[random.randint(0, len(members - 1))]))
+                members = await send('/list', response=True)
+                members = members.split(':')[1].splitlines()
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members[random.randint(0, len(members) - 1)]))
             elif counter == 3:
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="https://discord.gg/KwgtbJFpk4"))
             elif counter == 4:
-                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="2 Uhr Nachts ft. Stellx"))
+                members = await send('/list', response=True)
+                members = members.split(':')[0]
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members))
+
             elif counter == 5:
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Swims Schreie"))
             await asyncio.sleep(15)
@@ -363,7 +369,7 @@ def discord_bot():
 
 
     loop_discord.create_task(d_send_messages())
-    loop_discord.create_task(status())
+
     try: bot.run(token)
     except discord.errors.LoginFailure: 
         print_color(dc_login_error)
