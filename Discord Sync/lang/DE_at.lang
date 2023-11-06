@@ -1,19 +1,28 @@
-date_format=DD%MM%YYYY
-file_executed_in=Dotei ausgfirt i %
-folder_created_for_logs=//yellow// Erstölt an Ordna fürd Logs
-config_file_broken=//red// Föhla: Config Dotei is hinnig, sois vo GitHub runtaglodn werdan?
-setting_empty=//red// ERROR: % is im Config ned angegebn!
-restore_synced_accounts=//yellow// synced_accounts.json wurdat glöscht, sois vo GitHub runtaglodn werdan?
-ask_user_for_exit=//red// Drick Enter ums Progromm zu schließon
-log_deleted=//yellow// Da Log % wird glöscht
-mc_timeout=//yellow// Timeout, wö 10 Sekunden long auf ane Antwurt vo Minecraft gwarten worden is.
-ws_public_ip=Websocket startet üba di öffentliche IP: %
-ws_private_ip=Websocket startet üba die private IP
-ws_ready=Breit
-ws_connected=//green// Verbundan
-new_wh_sync=Neicha WebHook sync vom %
-channel_not_found=//red// ERROR: Kanoi ned gfunden!
-login_error=//red// ERROR: Einloggn bei Discord schiefglaufen, worscheinli a foischer Token?
-wh_dm_msg=Um die anzumödn musst:\n%\nschreibn
-bot_killed_dc=Da Bot wurd vom % abgmurkst
-wh_reason=A afocher WebHook fürn Minecraft/Discord Sync
+#---General---
+gn_date_format=DD%MM%YYYY
+gn_file_executed_in=Dotei ausgfiert i %
+gn_folder_created_for_logs=//yellow// Erstölt an Ordner fürd Logs
+gn_log_deleted=//yellow// Da Log % wiad entfernt
+gn_config_file_broken=//red// ERROR: Config Datei eigschissn, sois ersetzt wern
+gn_setting_empty=//red// ERROR: % is ned im Config drinnen
+gn_restore_synced_accounts=//yellow// synced_accounts.json wurd glöscht, wird ersetzt durch ane Kopie vo GitHub
+gn_ask_user_for_exit=//red// Drück Enta ums Programm zu schließn
+#---Minecraft---
+mc_ws_timeout=//yellow// Timeout wö Minecraft ned schnö gnug gewantwortet hot
+mc_ws_public_ip=Websocket startet bö IP: %
+mc_ws_private_ip=Websocket startet überd private IP
+mc_ws_ready=Bereit
+mc_ws_connected=//green// Verbundn
+mc_new_wh_sync=Neicha WebHook sync %
+mc_succesful_sync=Account erfoigreich synchronisiert!
+mc_wrong_password=Foischs Passwort!
+mc_dc_messages_hidden=Discord Nochrichtn san versteckt
+mc_dc_messages_visible=Discord Nochrichtn san wieda sichtbor
+#---Discord---
+dc_login=Login mit %
+dc_channel_server_message=Blauscht Konoi "%1" im Server "%2"
+dc_channel_not_found=//red// ERROR: Kanoi ned gfundn!
+dc_login_error=//red// ERROR: Eiloggen bei Discord schiefglaufn, a foischer Token?
+dc_wh_dm_msg=Umd synchronisation abzuschließn musst nur no in Minecraft:\n%\nschreibn
+dc_bot_killed=Da Bot wurde duarch % beendet
+dc_wh_reason=WebHook füa Minecraft/Discord Sync

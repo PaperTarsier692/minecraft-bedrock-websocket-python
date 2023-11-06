@@ -22,7 +22,7 @@ from misc_commands import yes_no, auto_convert, remove_emojis, get_key, print_co
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
 
-global date_format,file_executed_in,folder_created_for_logs,config_file_broken,setting_empty,restore_synced_accounts,ask_user_for_exit,log_deleted,mc_timeout,ws_public_ip,ws_private_ip,ws_ready,ws_connected,new_wh_sync,channel_not_found,login_error,wh_dm_msg,bot_killed_dc,wh_reason
+global gn_date_format, gn_file_executed_in, gn_folder_created_for_logs, gn_log_deleted, gn_config_file_broken, gn_setting_empty, gn_restore_synced_accounts, gn_ask_user_for_exit, mc_ws_timeout, mc_ws_public_ip, mc_ws_private_ip, mc_ws_ready, mc_ws_connected, mc_new_wh_sync, mc_succesful_sync, mc_wrong_password, mc_dc_messages_hidden, dc_login, dc_channel_server_message, dc_channel_not_found, dc_login_error, dc_wh_dm_msg, dc_bot_killed, dc_wh_reason
 #This ist just temporary and could be removed (but your IDE is gonna throw a lot of variable undefined errors)
 
 def setup():
@@ -34,20 +34,20 @@ def setup():
     init()
 
     if not os.path.exists(f'{path}/logs'):
-        print_color(folder_created_for_logs)
+        print_color(gn_folder_created_for_logs)
         os.mkdir(f'{path}/logs')
     global setting_empty
-    setting_empty = '//red// ERROR: % ist nicht im Config angegeben!'
+    gn_setting_empty = '//red// ERROR: % ist nicht im Config angegeben!'
     load_config()
     load_lang()
     restore_accounts_file()
     load_accounts()
     if not log_delete_time == -1: clean_logs()
-    print_color(file_executed_in.replace('%', path))
+    print_color(gn_file_executed_in.replace('%', path))
     print_color(f'{date_obj.day}. {date_obj.month}. {date_obj.year}')
 
 def ask_user_exit():
-    print_color(ask_user_for_exit)
+    print_color(gn_ask_user_for_exit)
     _ = input()
     sys.exit()
 
@@ -57,7 +57,7 @@ def load_config():
     try:
         config.read(f'{path}/settings.cfg')
     except configparser.ParsingError:
-        if yes_no(config_file_broken):
+        if yes_no(gn_config_file_broken):
             with open(f'{path}/settings.cfg', 'w', encoding='utf-8') as f:
                 f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/settings.cfg').text.replace('\r\n', '\n'))
         else:
@@ -72,7 +72,7 @@ def load_config():
 
 def restore_accounts_file():
     if not os.path.exists(f'{path}/synced_accounts.json'):
-        print_color(restore_synced_accounts)
+        print_color(gn_restore_synced_accounts)
         with open(f'{path}/synced_accounts.json', 'w', encoding='utf-8') as f:
                 f.write(requests.get('https://raw.githubusercontent.com/PaperTarsier692/minecraft-bedrock-websocket-python/main/Discord%20Sync/synced_accounts.json').text.replace('\r\n', '\n'))
 
@@ -87,13 +87,15 @@ def load_lang():
         lang_file = l.read()
     split = lang_file.splitlines()
     for element in split:
-        globals()[element.split('=', 1)[0]] = element.split('=')[1]
+        if not element.startswith('#'):
+            print(element.split('=', 1)[0], end=', ')
+            globals()[element.split('=', 1)[0]] = element.split('=')[1]
 
 def clean_logs():
     logs = os.listdir(f'{path}/logs')
     for log in logs:
         if int(log.replace('_', '').replace('.txt', '')) < int(date.replace('_', '')) - log_delete_time:
-            print_color(log_deleted.replace('%', log))
+            print_color(gn_log_deleted.replace('%', log))
             os.remove(f'{path}/logs/{log}')
 
 def cmd(command:str, arguments=None):
@@ -125,7 +127,7 @@ async def send(cmd:str, selector = '@a', response=False):
         try:
             return await asyncio.wait_for(wait_for_response(uuid), timeout=True)
         except asyncio.TimeoutError:
-            print_color(mc_timeout)
+            print_color(mc_ws_timeout)
             return None
         
 async def wait_for_response(uuid):
@@ -143,7 +145,7 @@ async def mineproxy(websocket):
     tasks = [await send(item) for item in d_messages]
     await asyncio.gather(*tasks)
     await websocket.send(json.dumps({"body": {"eventName": "PlayerMessage"},"header": {"requestId": f'{uuid4()}',"messagePurpose": "subscribe","version": 1,"messageType": "commandRequest"}}))
-    print_color(ws_connected)
+    print_color(mc_ws_connected)
     global running
     running = True
 
@@ -170,23 +172,23 @@ async def mineproxy(websocket):
             elif cmd('!Discord', 'text'):
                 if match.group(1) == 'disable':
                     await send('/tag @s add off')
-                    await send(f'§l§8System §r§7: Discord Nachrichten sind unsichtbar§r', '@sender')
+                    await send(f'§l§8System §r§7: {mc_dc_messages_hidden}§r', '@sender')
                 elif match.group(1) == 'enable':
                     await send('/tag @s remove off')
-                    await send(f'§l§8System §r§7: Discord Nachrichten sind sichtbar§r', '@sender')
+                    await send(f'§l§8System §r§7: Discord {mc_dc_messages_visible}§r', '@sender')
             elif cmd('!Account sync', 'text'):
                 user = get_key(match.group(1), loaded_accounts['pending_webhooks'])
                 if not not user:
-                    print_color(new_wh_sync.replace('%', user))
+                    print_color(mc_new_wh_sync.replace('%', user))
                     with open(f'{path}/synced_accounts.json', 'w') as f:
                         loaded_accounts.get('synced_names').update({f'{user}': f'{msg_b.get("sender")}'})
                         global webhook_request
                         webhook_request = ([f'{user}', f'{msg_b.get("sender")}'])
                         json.dump(loaded_accounts, f, indent=4)
                     load_accounts()
-                    await send(f'§l§8System §r§7: Account erfolgreich synchronisiert!§r', '@sender')
+                    await send(f'§l§8System §r§7: {mc_succesful_sync}§r', '@sender')
                 else: 
-                    await send(f'§l§8System §r§7: Falsches Passwort!§r', '@sender')
+                    await send(f'§l§8System §r§7: {mc_wrong_password}§r', '@sender')
 
             elif cmd('', 'discord'):
                 m_messages.append(match)
@@ -200,11 +202,11 @@ async def init_websocket():
     if public:
         ip = '0.0.0.0'
         public_ip = get('https://api.ipify.org').content.decode('utf8')
-        print_color(ws_public_ip.replace('%', public_ip))
+        print_color(mc_ws_public_ip.replace('%', public_ip))
         copy_string = f'/connect {public_ip}:{port}'
     else:
         ip = 'localhost'
-        print_color(ws_private_ip)
+        print_color(mc_ws_private_ip)
         copy_string = f'/connect localhost:{port}'
     
     if copy_command and pyperclip.paste() != copy_string: 
@@ -212,7 +214,7 @@ async def init_websocket():
     else:
         print_color(copy_string)
     await websockets.serve(mineproxy, ip, port)
-    print_color(ws_ready)
+    print_color(mc_ws_ready)
     await asyncio.Future()
 
 
@@ -233,10 +235,10 @@ def discord_bot():
         global channel
         channel = bot.get_channel(channel_id)
         if not channel: 
-            print_color(channel_not_found)
+            print_color(dc_channel_not_found)
             ask_user_exit()
-        print_color(f'Login mit {bot.user}')
-        print_color(f'Belauscht Kanal "{channel}" in Server "{channel.guild.name}"')
+        print_color(dc_login.replace('%', bot.user))
+        print_color(dc_channel_server_message.replace('%1', channel).replace('%2', channel.quild.name))
 
     @bot.event
     async def on_message(message):
@@ -247,7 +249,7 @@ def discord_bot():
             if content == '!account sync':
                 if message.author.name not in loaded_accounts['synced_names']:
                     password = secrets.token_hex(8)
-                    await message.author.send(wh_dm_msg.replace('%', f'!Account sync {password}'))
+                    await message.author.send(dc_wh_dm_msg.replace('%', f'!Account sync {password}'))
                     loaded_accounts.get('pending_webhooks').update({f'{message.author.name}': f'{password}'})
                     loaded_accounts.get('pending_webhooks_display_names').update({f'{message.author.name}': f'{message.author.display_name}'})
                         
@@ -261,7 +263,7 @@ def discord_bot():
      
             elif content == '!kill':
                 if message.author.guild_permissions.administrator:
-                    print_color(bot_killed_dc.replace('%', message.author.name))
+                    print_color(dc_bot_killed.replace('%', message.author.name))
                     asyncio.sleep(3)
                     exit()
 
@@ -297,7 +299,7 @@ def discord_bot():
                 guild = channel.guild
                 member = discord.utils.get(guild.members, name=webhook_request[0])
                 name = accounts['pending_webhooks_display_names'][webhook_request[0]]
-                webhook = await channel.create_webhook(name=name, avatar=requests.get(member.avatar.url).content, reason=wh_reason)
+                webhook = await channel.create_webhook(name=name, avatar=requests.get(member.avatar.url).content, reason=dc_wh_reason)
                 accounts.get('synced_webhooks').update({f'{webhook_request[1]}': f'{webhook.url}'})
                 accounts.get('pending_webhooks').pop(member.name, None)
                 accounts.get('pending_webhooks_display_names').pop(member.name, None)
@@ -361,9 +363,10 @@ def discord_bot():
 
 
     loop_discord.create_task(d_send_messages())
+    loop_discord.create_task(status())
     try: bot.run(token)
     except discord.errors.LoginFailure: 
-        print_color(login_error)
+        print_color(dc_login_error)
         ask_user_exit()
 
 
