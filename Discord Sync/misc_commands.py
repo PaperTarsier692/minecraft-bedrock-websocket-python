@@ -2,9 +2,9 @@
 import re #Removing Emojis
 
 def auto_convert(value):
-    '''Converts the given string into the best value for it
-    Examples: 
-    auto_convert('1') -> 1
+    '''Converts the given string into the best value for it\n
+    Examples:\n
+    auto_convert('1') -> 1\n
     auto_convert('true') -> True
     '''
     try: return int(value)
@@ -15,8 +15,8 @@ def auto_convert(value):
             else: return value
 
 def get_key(val, dict):
-    '''Gets the given key in a dictionary
-    Example: dict = {'fruit': 'apple'}
+    '''Gets the given key in a dictionary\n
+    Example: dict = {'fruit': 'apple'}\n
     get_key('apple', dict) -> fruit'''
     for key, value in dict.items():
       if val == value:
@@ -34,7 +34,7 @@ def remove_emojis(text):
     return regrex_pattern.sub(r'',text)
 
 def yes_no(text, color = ''):
-    '''Asks the user, if he wants to do something
+    '''Asks the user, if he wants to do something\n
     Example: yes_no('Close the programm?', 'red')'''
     color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
     answer = input(color + text + "\033[0m")
@@ -43,7 +43,7 @@ def yes_no(text, color = ''):
     return answer.lower().replace('j', 'y') == 'y'
 
 def print_color(text:str):
-    '''Print something with the given color
+    '''Print something with the given color\n
     Example: print_color('//red// Text')''' 
     text = text.replace('//red// ', "\033[91m").replace('//yellow// ', "\033[93m").replace('//green// ', "\033[92m").replace('//blue// ', "\033[94m")
     print(text + "\033[0m")

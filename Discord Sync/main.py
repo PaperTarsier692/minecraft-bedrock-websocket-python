@@ -19,16 +19,17 @@ from discord.ext import commands  # Commands for the Discord Bot
 from colorama import init  # Coloured Outputs
 from discord_webhook import AsyncDiscordWebhook
 # WebHooks for the synced Accounts
-from misc_commands import yes_no, auto_convert, remove_emojis, print_color
+from misc_commands import yes_no, auto_convert, remove_emojis, print_color, get_key
 # Importing my own Misc-Commands
 
-global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language
+global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language, enable_webhooks
 
 global gn_date_format, gn_file_executed_in, gn_folder_created_for_logs, gn_log_deleted, gn_config_file_broken, gn_setting_empty, gn_restore_synced_accounts, gn_ask_user_for_exit, mc_ws_timeout, mc_ws_public_ip, mc_ws_private_ip, mc_ws_ready, mc_ws_connected, mc_new_wh_sync, mc_succesful_sync, mc_wrong_password, mc_dc_messages_hidden, dc_login, dc_channel_server_message, dc_channel_not_found, dc_login_error, dc_wh_dm_msg, dc_bot_killed, dc_wh_reason, mc_dc_messages_visible
 # This ist just temporary and could be removed (but your IDE is gonna throw a lot of variable undefined errors)
 
 
 def setup():
+    '''Loads the files, and does some other small things'''
     global path, date, d_messages, m_messages, running, webhook_request, msg, msg_b, loaded_accounts
     d_messages, m_messages, running, webhook_request, msg = [], [], False, False, ''
     path = os.path.dirname(os.path.abspath(
@@ -53,12 +54,14 @@ def setup():
 
 
 def ask_user_exit():
+    '''Asks the user if he wants to exit the programm'''
     print_color(gn_ask_user_for_exit)
     _ = input()
     sys.exit()
 
 
 def load_config():
+    '''Loads the config and saves the settings in global variables'''
     config = configparser.ConfigParser()
     config.optionxform = lambda option: option
     try:
@@ -80,6 +83,7 @@ def load_config():
 
 
 def restore_accounts_file():
+    '''Checks if the synced_accounts file still exists, and if it doesn't downloads a new copy from GitHub'''
     if not os.path.exists(f'{path}/synced_accounts.json'):
         print_color(gn_restore_synced_accounts)
         with open(f'{path}/synced_accounts.json', 'w', encoding='utf-8') as f:
@@ -187,35 +191,40 @@ async def mineproxy(websocket):
     async for msg in websocket:
         msg = json.loads(msg)
         msg_b = msg['body']
-        if logging_enabled:
+        if log_type != 'off':
             with open(f'{path}/logs/{date}.txt', 'a') as f:
                 if log_type == 'full':
                     f.write(f'{msg}\n')
                 elif log_type == 'short':
                     f.write(f'{msg_b.get("sender")}: {msg_b.get("message")}\n')
+
         if msg['header'].get('eventName') == 'PlayerMessage':
-            if cmd('!Ping'):
-                await send(f'§l§8System §r§7: Pong§r', '@sender')
-            elif cmd('!Discord', 'text'):
+            if cmd('!Discord', 'text'):
                 if match.group(1) == 'disable':
                     await send('/tag @s add off')
                     await send(f'§l§8System §r§7: {mc_dc_messages_hidden}§r', '@sender')
                 elif match.group(1) == 'enable':
                     await send('/tag @s remove off')
                     await send(f'§l§8System §r§7: Discord {mc_dc_messages_visible}§r', '@sender')
-            elif cmd('!Account sync', 'text'):
-                password = match.group(1)
-                user = loaded_accounts.get(password)
-                if user != None:
-                    print_color(mc_new_wh_sync.replace('%', user))
-                    webhook_request = password
-                    loaded_accounts.get(password)['minecraft_name'].update(msg_b.get('sender'))
-                    loaded_accounts.get('synced_names').update(
-                        {user['discord_name']: msg_b.get("sender")})
-                    
-                    await send(f'§l§8System §r§7: {mc_succesful_sync}§r', '@sender')
-                else:
-                    await send(f'§l§8System §r§7: {mc_wrong_password}§r', '@sender')
+
+            elif cmd('!Account', 'text'):
+                if cmd('!Account sync', 'text'):
+                    password = match.group(1)
+                    user = loaded_accounts.get(password)
+                    if user != None:
+                        print_color(mc_new_wh_sync.replace('%', user))
+                        webhook_request = password
+                        loaded_accounts.get(password)['minecraft_name'].update(msg_b.get('sender'))
+                        await send(f'§l§8System §r§7: {mc_succesful_sync}§r', '@sender')
+                    else:
+                        await send(f'§l§8System §r§7: {mc_wrong_password}§r', '@sender')
+                
+                elif cmd('!Account desync'):
+                    user = msg_b.get('sender')
+                    if user in loaded_accounts['synced_webhooks']:
+                        loaded_accounts
+                        loaded_accounts['synced_webhooks']:dict.pop(user)
+                        loaded_accounts['synced_names']:dict.pop(get_key(user, loaded_accounts['synced_names']))
 
             elif cmd('', 'discord'):
                 m_messages.append(match)
@@ -325,7 +334,7 @@ def discord_bot():
         global webhook_request, mc_only_synced_accounts
         while True:
             for message in m_messages:
-                if message['sender'] in loaded_accounts['synced_webhooks']:
+                if enable_webhooks and message['sender'] in loaded_accounts['synced_webhooks']:
                     if not await minecraft_clean_message(message["message"]) == False:
                         await send_webhook(loaded_accounts['synced_webhooks'][message['sender']], await minecraft_clean_message(message["message"]))
                     m_messages.remove(message)
@@ -335,20 +344,29 @@ def discord_bot():
                     m_messages.remove(message)
 
             if webhook_request != False:
-                user = loaded_accounts.get(webhook_request)
+                #---Get Values---
                 guild = channel.guild
-                member = discord.utils.get(
-                    guild.members, name=user['discord_tag'])
+                user = loaded_accounts.get(webhook_request)
+                member = discord.utils.get(guild.members, name=user['discord_tag'])
+                
+                #---Create Webhook---
                 webhook = await channel.create_webhook(name=user['discord_name'], avatar=requests.get(member.avatar.url).content, reason=dc_wh_reason)
                 loaded_accounts.get('synced_webhooks').update(
                     {f'{webhook_request[1]}': f'{webhook.url}'})
+                
+                #---Create Synced Name---
+                loaded_accounts.get('synced_names').update({user['discord_name']: user['minecraft_name']})
+
+                #---Delete request and save
                 loaded_accounts.get('pending_webhooks').pop(webhook_request)
                 with open(f'{path}/synced_accounts.json', 'w') as f:
                     json.dump(loaded_accounts, f, indent=4)
                 webhook_request = False
+
             await asyncio.sleep(check_interval)
 
     async def status():
+        '''The function that sets the bot status to some random message every 15 seconds'''
         counter = 0
         while not running:
             await asyncio.sleep(1)
@@ -373,6 +391,7 @@ def discord_bot():
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Swims Schreie"))
             await asyncio.sleep(15)
 
+
     async def send_webhook(webhook_url, message):
         '''A simple function that sends something with a WebHook\n
         Example: send_webhook('https://discord...', 'Hello World')'''
@@ -380,31 +399,41 @@ def discord_bot():
 
     async def clean_message(message):
         '''A function 'cleaning' the given message (!!!Only works when a Discord message object is given!!!)\n
-        Example: The message is 'Hello :flushed: https://www.google.de'\nclean_message(message) -> Hello \nImportant: It only cleans the blocked things, as defined in the settings.'''
+        Example: Th1e message is 'Hello :flushed: https://www.google.de'\nclean_message(message) -> Hello \nImportant: It only cleans the blocked things, as defined in the settings.'''
         string = message.content
+
+        #---Block Emojis---
         if not allow_emojis:
             if string != remove_emojis(string):
-                await error(message, '3️⃣', 'warn')
+                #await error(message, '3️⃣', 'warn')
                 string = remove_emojis(string)
+        
+        #---Block Links---
         if not allow_links:
             if string != re.sub(r'http\S+', '', string):
-                await error(message, '4️⃣', 'warn')
+                #await error(message, '4️⃣', 'warn')
                 string = re.sub(r'http\S+', '', string)
+
+        #---Block long messages---
         if max_characters > -1 and len(string) > max_characters:
-            await error(message, '1️⃣', 'crit')
+            await error(message, '2️⃣', 'crit')
             return False
+        
+        #---Block emty messages---
         if string.replace(' ', '') == '':
-            await error(message, '0️⃣', 'crit')
+            await error(message, '1️⃣', 'crit')
             return False
         else:
             return string
 
     async def minecraft_clean_message(string):
         '''Cleans the given string (for Minecraft)'''
-        if not allow_links:
-            string = re.sub(r'http\S+', '', string)
+
+        #---Block long messages---
         if max_characters > -1 and len(string) > max_characters:
             return False
+        
+        #---Block Pings---
         if block_pings != 'disabled':
             if block_pings == 'all':
                 string = re.sub(
