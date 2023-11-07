@@ -1,6 +1,12 @@
+'''Some useful (and necessary functions for my MCBE-DC Sync project'''
 import re #Removing Emojis
 
 def auto_convert(value):
+    '''Converts the given string into the best value for it
+    Examples: 
+    auto_convert('1') -> 1
+    auto_convert('true') -> True
+    '''
     try: return int(value)
     except ValueError:
         try: return float(value)
@@ -9,12 +15,16 @@ def auto_convert(value):
             else: return value
 
 def get_key(val, dict):
-   for key, value in dict.items():
+    '''Gets the given key in a dictionary
+    Example: dict = {'fruit': 'apple'}
+    get_key('apple', dict) -> fruit'''
+    for key, value in dict.items():
       if val == value:
          return key
-   return False
+    return False
 
 def remove_emojis(text):
+    '''Removes Emojis from the given text'''
     regrex_pattern = re.compile(pattern = "["
         u"\U0001F600-\U0001F64F"
         u"\U0001F300-\U0001F5FF"
@@ -24,6 +34,8 @@ def remove_emojis(text):
     return regrex_pattern.sub(r'',text)
 
 def yes_no(text, color = ''):
+    '''Asks the user, if he wants to do something
+    Example: yes_no('Close the programm?', 'red')'''
     color = color.replace('red', "\033[91m").replace('yellow', "\033[93m").replace('green', "\033[92m").replace('blue', "\033[94m")
     answer = input(color + text + "\033[0m")
     if answer.lower() not in ['y', 'j', 'n']:
