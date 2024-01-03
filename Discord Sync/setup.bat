@@ -1,6 +1,5 @@
 @echo off
 
-pip install --upgrade pip
 pip install threading
 pip install py-cord
 pip install websockets
