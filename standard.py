@@ -91,7 +91,8 @@ async def mineproxy(websocket):
         msg_b = msg['body']
 
         if msg['header'].get('eventName') == 'PlayerMessage':
-            # Your Commands go here
+            # Your Commands go here (remove pass)
+            pass
 
 
 async def init_websocket():
