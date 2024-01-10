@@ -1,8 +1,10 @@
 '''This is the simplest usage of the standard code.'''
 
 import re  # Filter Emojis, Commands
+import os # Get the current directory
 import json  # JSON Data for sending and recieving WebSocket Data
 import asyncio  # Async Code execution througout the entire project
+import inspect # Get the current file
 import websockets  # Websockets for Minecraft
 from uuid import uuid4  # Generate UUIDs for Minecraft
 from requests import get  # Get the Public IP
@@ -16,7 +18,7 @@ public = False
 port = 6464
 # Sets the port to be used for the WebSocket; Default: 6464
 
-self_host = True
+self_host = False
 # If the WebSocket is connected to a world hosted by the person who typed the command; Default: True
 
 
@@ -33,6 +35,9 @@ def cmd(command: str, arguments=None, sender=None):
             match = re.match(command, msg_b.get('message'), re.IGNORECASE)
         elif arguments == 'text':
             match = re.match(f'{command} (\w+)',
+                             msg_b.get('message'), re.IGNORECASE)
+        elif arguments == 'textx2':
+            match = re.match(f'{command} (\w+) (\w+)',
                              msg_b.get('message'), re.IGNORECASE)
         if sender != None:
             if msg_b.get('sender') == sender:
@@ -61,6 +66,8 @@ async def send(cmd: str, selector='@a', response=False):
                 selector + '{"rawtext":[{"text":"' + cmd + '"}]}'
         else:
             msg['body']['commandLine'] = "/msg " + selector + ' ' + cmd
+    else:
+        msg = msg.replace('@sender', msg_b.get('sender'))
     await websocket_var.send(json.dumps(msg))
     if response:
         try:
@@ -92,7 +99,13 @@ async def mineproxy(websocket):
 
         if msg['header'].get('eventName') == 'PlayerMessage':
             # Your Commands go here (remove pass)
-            pass
+            if cmd('!track', 'textx2'):
+                player_x = match.group(1)
+                player_z = match.group(2)
+                s_range = 10000
+                result = await send(f'/msg @sender a+c+ @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz={s_range}] a+c- @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz=-{s_range}] a-c+ @a[x = {player_x}, dx = -{s_range}, z = {player_z}, dz={s_range}] a-c- @a[x = {player_x}, dx = -{s_range}, z = -{player_z}, dz=-{s_range}]', response=True)
+                with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/data.json', 'a') as f:
+                    json.dump(result, f)
 
 
 async def init_websocket():
