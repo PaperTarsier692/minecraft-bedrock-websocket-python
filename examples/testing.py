@@ -5,6 +5,7 @@ import os # Get the current directory
 import json  # JSON Data for sending and recieving WebSocket Data
 import asyncio  # Async Code execution througout the entire project
 import inspect # Get the current file
+import pyperclip # Copy the command into the clipboard
 import websockets  # Websockets for Minecraft
 from uuid import uuid4  # Generate UUIDs for Minecraft
 from requests import get  # Get the Public IP
@@ -66,8 +67,6 @@ async def send(cmd: str, selector='@a', response=False):
                 selector + '{"rawtext":[{"text":"' + cmd + '"}]}'
         else:
             msg['body']['commandLine'] = "/msg " + selector + ' ' + cmd
-    else:
-        msg = msg.replace('@sender', msg_b.get('sender'))
     await websocket_var.send(json.dumps(msg))
     if response:
         try:
@@ -77,11 +76,13 @@ async def send(cmd: str, selector='@a', response=False):
             return None
 
 
+
 async def _wait_for_response(uuid):
     '''A helper function used by send() to wait for a response from Minecraft'''
     global msg
     while True:
-        resp_json = msg
+        resp_json = await websocket_var.recv()
+        resp_json = json.loads(resp_json)
         if 'header' in resp_json and 'requestId' in resp_json['header'] and resp_json['header']['requestId'] == str(uuid):
             return resp_json['body']['statusMessage']
 
@@ -96,14 +97,20 @@ async def mineproxy(websocket):
     async for msg in websocket:
         msg = json.loads(msg)
         msg_b = msg['body']
-
+        with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/full_log.txt', 'a') as f:
+                f.write(f'{msg}\n')
         if msg['header'].get('eventName') == 'PlayerMessage':
-            # Your Commands go here (remove pass)
+            with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/log.txt', 'a') as f:
+                f.write(f'{msg}\n')
             if cmd('!track', 'textx2'):
                 player_x = match.group(1)
                 player_z = match.group(2)
                 s_range = 10000
-                result = await send(f'/msg @sender a+c+ @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz={s_range}] a+c- @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz=-{s_range}] a-c+ @a[x = {player_x}, dx = -{s_range}, z = {player_z}, dz={s_range}] a-c- @a[x = {player_x}, dx = -{s_range}, z = -{player_z}, dz=-{s_range}]', response=True)
+                result = await send(
+                    f'''/me a+c+ @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz={s_range}] a+c- @a[x = {player_x}, dx = {s_range}, z = {player_z}, dz=-{s_range}] a-c+ @a[x = {player_x}, dx = -{s_range}, z = {player_z}, dz={s_range}] a-c- @a[x = {player_x}, dx = -{s_range}, z = -{player_z}, dz=-{s_range}]
+                    ''', response=False)
+                print('Finisch?')
+                print(f'Result: {result}')
                 with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/data.json', 'a') as f:
                     json.dump(result, f)
 
@@ -120,10 +127,12 @@ async def init_websocket():
         ip = '0.0.0.0'
         public_ip = get('https://api.ipify.org').content.decode('utf8')
         print(f'Running WebSocket @ {public_ip}:{port}')
+        pyperclip.copy(f'/connect {public_ip}:{port}')
     else:
         # If the private IP address gets selected, use the localhost as IP
         ip = 'localhost'
         print(f'Running WebSocket @ localhost:{port}')
+        pyperclip.copy(f'/connect localhost:{port}')
 
     # ---Start the WebSocket listener---
     await websockets.serve(mineproxy, ip, port)

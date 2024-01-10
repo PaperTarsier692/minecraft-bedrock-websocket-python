@@ -1,0 +1,4 @@
+{'body': {'message': '!track 0 0', 'receiver': '', 'sender': 'HARRERM', 'type': 'chat'}, 'header': {'eventName': 'PlayerMessage', 'messagePurpose': 'event', 'version': 17039360}}
+{'body': {'message': '!track 0 0', 'receiver': '', 'sender': 'HARRERM', 'type': 'chat'}, 'header': {'eventName': 'PlayerMessage', 'messagePurpose': 'event', 'version': 17039360}}
+{'body': {'message': 'a+c+  a+c-  a-c+ HARRERM a-c- ', 'receiver': '', 'sender': 'Lehrer', 'type': 'me'}, 'header': {'eventName': 'PlayerMessage', 'messagePurpose': 'event', 'version': 17039360}}
+{'body': {'statusCode': 0}, 'header': {'messagePurpose': 'commandResponse', 'requestId': '99407b88-8adf-448f-b126-0f3f3ba33531', 'version': 17039360}}

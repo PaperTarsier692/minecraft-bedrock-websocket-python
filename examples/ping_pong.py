@@ -1,9 +1,11 @@
 '''This is the simplest usage of the standard code.'''
 
 import re  # Filter Emojis, Commands
+import os # Get the current directory
 import json  # JSON Data for sending and recieving WebSocket Data
 import asyncio  # Async Code execution througout the entire project
 import websockets  # Websockets for Minecraft
+import inspect # Get the current file
 from uuid import uuid4  # Generate UUIDs for Minecraft
 from requests import get  # Get the Public IP
 
@@ -85,7 +87,8 @@ async def mineproxy(websocket):
     async for msg in websocket:
         msg = json.loads(msg)
         msg_b = msg['body']
-
+        with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/full_log.txt', 'a') as f:
+                f.write(f'{msg}\n')
         if msg['header'].get('eventName') == 'PlayerMessage':
             if cmd('ping'):
                 await send('Pong!', '@sender')
