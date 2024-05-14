@@ -17,10 +17,9 @@ from uuid import uuid4  # Generate UUIDs for Minecraft
 from requests import get  # The get command for GitHub files
 from discord.ext import commands  # Commands for the Discord Bot
 from colorama import init  # Coloured Outputs
-from discord_webhook import AsyncDiscordWebhook
 # WebHooks for the synced Accounts
-from misc_commands import *
-# Importing my own Misc-Commands
+from discord_webhook import AsyncDiscordWebhook
+from misc_commands import *  # Importing my own Misc-Commands
 
 global check_interval, max_characters, token, channel_id, allow_emojis, allow_links, public, port, logging_enabled, log_type, log_delete_time, message_style, mc_only_synced_accounts, dc_only_synced_accounts, copy_command, language, enable_webhooks
 
@@ -97,7 +96,8 @@ def load_accounts():
     global loaded_accounts
     with open(f'{path}/synced_accounts.json', 'r') as f:
         loaded_accounts = json.load(f)
-        
+
+
 def save_accounts():
     '''Saves the 'loaded_accounts' in the 'synced_accounts.json' file'''
     with open(f'{path}/synced_accounts.json', 'w') as f:
@@ -112,7 +112,8 @@ def load_lang():
     split = lang_file.splitlines()
     for element in split:
         if not element.startswith('#'):
-            globals()[element.split('=', 1)[0]] = element.split('=')[1].replace('\\n', '\n')
+            globals()[element.split('=', 1)[0]] = element.split(
+                '=')[1].replace('\\n', '\n')
 
 
 def clean_logs():
@@ -215,25 +216,28 @@ async def mineproxy(websocket):
 
             elif cmd('!Account', 'text'):
                 if cmd('!Account sync', 'text'):
-                    #---Try to get the user infos---
+                    # ---Try to get the user infos---
                     password = match.group(1)
                     user = loaded_accounts['pending_webhooks'].get(password)
-                    
+
                     if user != None:
-                        #---Add the Minecraft Name to the users info and start a WebHook request---
-                        print_color(mc_new_wh_sync.replace('%', msg_b.get('sender')))
+                        # ---Add the Minecraft Name to the users info and start a WebHook request---
+                        print_color(mc_new_wh_sync.replace(
+                            '%', msg_b.get('sender')))
                         webhook_request = password
-                        loaded_accounts['pending_webhooks'].get(password)['minecraft_name'] = msg_b.get('sender')
+                        loaded_accounts['pending_webhooks'].get(
+                            password)['minecraft_name'] = msg_b.get('sender')
                         await send(f'§l§8System §r§7: {mc_succesful_sync}§r', '@sender')
                     else:
-                        #If the user/password isn't found, throw an error
+                        # If the user/password isn't found, throw an error
                         await send(f'§l§8System §r§7: {mc_wrong_password}§r', '@sender')
-                
+
                 elif cmd('!Account desync'):
                     user = msg_b.get('sender')
                     if user in loaded_accounts['synced_webhooks']:
                         loaded_accounts['synced_webhooks'].pop(user)
-                        loaded_accounts['synced_names'].pop(get_key(user, loaded_accounts['synced_names']))
+                        loaded_accounts['synced_names'].pop(
+                            get_key(user, loaded_accounts['synced_names']))
                         save_accounts()
                         await send(f'§l§8System §r§7: {mc_succesful_desync}§r', '@sender')
 
@@ -245,30 +249,30 @@ async def init_websocket():
     '''Initialises the WebSocket and runs some misc things, like copying the command in the clipboard'''
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    #Setup
+    # Setup
 
-    #---Run on private/public IP---
+    # ---Run on private/public IP---
     if public:
-        #If the public IP address gets selected, get it with the ipify API and print it
+        # If the public IP address gets selected, get it with the ipify API and print it
         ip = '0.0.0.0'
         public_ip = get('https://api.ipify.org').content.decode('utf8')
         print_color(mc_ws_public_ip.replace('%', public_ip))
         copy_string = f'/connect {public_ip}:{port}'
     else:
-        #If the private IP address gets selected, use the localhost as IP
+        # If the private IP address gets selected, use the localhost as IP
         ip = 'localhost'
         print_color(mc_ws_private_ip)
         copy_string = f'/connect localhost:{port}'
 
-    #---Copy or output the command---
+    # ---Copy or output the command---
     if copy_command and pyperclip.paste() != copy_string:
-        #Only copy the command if enabled in the settings, and the command isn't already in the clipboard
+        # Only copy the command if enabled in the settings, and the command isn't already in the clipboard
         pyperclip.copy(copy_string)
     else:
-        #Else print the command to the console
+        # Else print the command to the console
         print_color(copy_string)
-    
-    #---Start the WebSocket listener---
+
+    # ---Start the WebSocket listener---
     await websockets.serve(mineproxy, ip, port)
     print_color(mc_ws_ready)
     await asyncio.Future()
@@ -280,7 +284,7 @@ def discord_bot():
     loop_discord = asyncio.new_event_loop()
     asyncio.set_event_loop(loop_discord)
     bot = commands.Bot(intents=discord.Intents.all())
-    #Setup
+    # Setup
 
     async def error(message, emoji, type):
         if type == 'warn':
@@ -295,29 +299,29 @@ def discord_bot():
         global channel
         channel = bot.get_channel(channel_id)
         if not channel:
-            #Execute if the channel is not found
+            # Execute if the channel is not found
             print_color(dc_channel_not_found)
             ask_user_exit()
         print_color(dc_login.replace('%', str(bot.user)))
         print_color(dc_channel_server_message.replace(
             '%1', str(channel)).replace('%2', str(channel.guild.name)))
         loop_discord.create_task(status())
-        #Start the status() loop in the background
+        # Start the status() loop in the background
 
     @bot.event
     async def on_message(message):
         '''The function that gets called every recieved message'''
         if message.author == bot.user or message.webhook_id is not None:
-            #Don't do further checks if the user is from this bot or a WebHook
+            # Don't do further checks if the user is from this bot or a WebHook
             return
         if message.channel == channel and running:
             content = message.content.lower()
             if content == '!account sync':
                 if message.author.name not in loaded_accounts['synced_names']:
-                    #---Create a password and send it to the user---
+                    # ---Create a password and send it to the user---
                     password = secrets.token_hex(8)
                     await message.author.send(dc_account_sync_request.replace('%', f'!Account sync {password}'))
-                    #---Gather the users info and save it---
+                    # ---Gather the users info and save it---
                     user_infos = {
                         'discord_tag': message.author.name,
                         'discord_name': message.author.display_name,
@@ -325,7 +329,7 @@ def discord_bot():
                     }
                     loaded_accounts.get('pending_webhooks').update(
                         {password: user_infos})
-                    #---Save the changes to the synced_accounts.json file---
+                    # ---Save the changes to the synced_accounts.json file---
                     save_accounts()
 
                 else:
@@ -333,15 +337,15 @@ def discord_bot():
 
             elif content == '!list':
                 await message.channel.send(await send('/list', response=True))
-                #Respond with the result of the /list command
+                # Respond with the result of the /list command
 
             elif content == '!kill':
                 if message.author.guild_permissions.administrator:
-                    #Only execute if the user has Admin permissions
+                    # Only execute if the user has Admin permissions
                     print_color(dc_bot_killed.replace(
                         '%', message.author.name))
                     sys.exit()
-                    #Wait 3 seconds before closing the programm
+                    # Wait 3 seconds before closing the programm
 
             elif await clean_message(message):
                 author = message.author.name
@@ -372,71 +376,72 @@ def discord_bot():
                     m_messages.remove(message)
 
             if webhook_request != False:
-                #---Get Values---
+                # ---Get Values---
                 guild = channel.guild
                 user = loaded_accounts['pending_webhooks'].get(webhook_request)
-                member = discord.utils.get(guild.members, name=user['discord_tag'])
-                
-                #---Create Webhook---
+                member = discord.utils.get(
+                    guild.members, name=user['discord_tag'])
+
+                # ---Create Webhook---
                 try:
                     webhook = await channel.create_webhook(name=user['discord_name'], avatar=requests.get(member.avatar.url).content, reason=dc_wh_reason)
                 except:
                     await send(f'§l§8System §r§7: {mc_wh_creation_failed}§r', user['minecraft_name'])
                 loaded_accounts.get('synced_webhooks').update(
                     {f'{user["minecraft_name"]}': f'{webhook.url}'})
-                
-                #---Create Synced Name---
-                loaded_accounts.get('synced_names').update({user['discord_tag']: user['minecraft_name']})
 
-                #---Delete request and save
+                # ---Create Synced Name---
+                loaded_accounts.get('synced_names').update(
+                    {user['discord_tag']: user['minecraft_name']})
+
+                # ---Delete request and save
                 loaded_accounts.get('pending_webhooks').pop(webhook_request)
                 save_accounts()
                 webhook_request = False
-            
-            #---Wait for check_interval amount of seconds---
+
+            # ---Wait for check_interval amount of seconds---
             await asyncio.sleep(check_interval)
 
     async def status():
         '''The function that sets the bot status to some random message every 15 seconds'''
         counter = 0
-        #---Wait until the WebSocket is connected---
+        # ---Wait until the WebSocket is connected---
         while not running:
             await asyncio.sleep(1)
-            
-        #---Loop---
+
+        # ---Loop---
         while True:
-            #---Increase the counter by 1 and make sure it doesn't go other 5---
+            # ---Increase the counter by 1 and make sure it doesn't go other 5---
             counter += 1
             counter %= 5
 
-            #---Set the different statuses---
+            # ---Set the different statuses---
             if counter == 1:
-                #"Minecraft Highlander"
+                # "Minecraft Highlander"
                 await bot.change_presence(activity=discord.Game(name="Minecraft Highlander"))
-                
+
             elif counter == 2:
-                #Pick a random user and "watch it"
+                # Pick a random user and "watch it"
                 members = await send('/list', response=True)
                 members = members.split(':')[1].splitlines()
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members[random.randint(0, len(members) - 1)]))
-                
+
             elif counter == 3:
-                #Discord Link
+                # Discord Link
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="https://discord.gg/KwgtbJFpk4"))
-                
+
             elif counter == 4:
-                #The amount of users online
+                # The amount of users online
                 members = await send('/list', response=True)
                 members = members.split(':')[0]
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=members))
 
             elif counter == 5:
-                #Listening to "Swims Schreie"
+                # Listening to "Swims Schreie"
                 await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Swims Schreie"))
-            
-            #---Wait 15 seconds---
-            await asyncio.sleep(15)
 
+            # ---Wait 15 seconds---
+            await asyncio.sleep(15)
 
     async def send_webhook(webhook_url, message):
         '''A simple function that sends something with a WebHook\n
@@ -448,26 +453,26 @@ def discord_bot():
         Example: The message is 'Hello :flushed: https://www.google.de'\nclean_message(message) -> Hello \nImportant: It only cleans the blocked things, as defined in the settings.'''
         string = message.content
 
-        #---Block Emojis---
+        # ---Block Emojis---
         if not allow_emojis:
             if string != remove_emojis(string):
-                #await error(message, '3️⃣', 'warn')
+                # await error(message, '3️⃣', 'warn')
                 string = remove_emojis(string)
-        
-        #---Block Links---
+
+        # ---Block Links---
         if not allow_links:
             if string != re.sub(r'http\S+', '', string):
-                #await error(message, '4️⃣', 'warn')
+                # await error(message, '4️⃣', 'warn')
                 string = re.sub(r'http\S+', '', string)
 
-        #---Block long messages---
+        # ---Block long messages---
         if max_characters > -1 and len(string) > max_characters:
-            #await error(message, '2️⃣', 'crit')
+            # await error(message, '2️⃣', 'crit')
             return False
-        
-        #---Block emty messages---
+
+        # ---Block emty messages---
         if string.replace(' ', '') == '':
-            #await error(message, '1️⃣', 'crit')
+            # await error(message, '1️⃣', 'crit')
             return False
         else:
             return string
@@ -475,11 +480,11 @@ def discord_bot():
     async def minecraft_clean_message(string):
         '''Cleans the given string (for Minecraft)'''
 
-        #---Block long messages---
+        # ---Block long messages---
         if max_characters > -1 and len(string) > max_characters:
             return False
-        
-        #---Block Pings---
+
+        # ---Block Pings---
         if block_pings != 'disabled':
             if block_pings == 'all':
                 string = re.sub(
@@ -491,11 +496,11 @@ def discord_bot():
 
     loop_discord.create_task(_d_send_messages())
 
-    #---Runs the bot---
+    # ---Runs the bot---
     try:
         bot.run(token)
     except discord.errors.LoginFailure:
-        #If the login fails, throw an error
+        # If the login fails, throw an error
         print_color(dc_login_error)
         ask_user_exit()
 

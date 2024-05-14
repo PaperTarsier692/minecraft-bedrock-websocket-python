@@ -37,7 +37,8 @@ def cmd(command: str, arguments=None, sender=None):
         if sender != None:
             if msg_b.get('sender') == sender:
                 return match
-            else: return False
+            else:
+                return False
         return match
     return False
 

@@ -1,11 +1,9 @@
-'''This is the simplest usage of the standard code.'''
-
 import re  # Filter Emojis, Commands
-import os # Get the current directory
+import os  # Get the current directory
 import json  # JSON Data for sending and recieving WebSocket Data
 import asyncio  # Async Code execution througout the entire project
-import inspect # Get the current file
-import pyperclip # Copy the command into the clipboard
+import inspect  # Get the current file
+import pyperclip  # Copy the command into the clipboard
 import websockets  # Websockets for Minecraft
 from uuid import uuid4  # Generate UUIDs for Minecraft
 from requests import get  # Get the Public IP
@@ -43,7 +41,8 @@ def cmd(command: str, arguments=None, sender=None):
         if sender != None:
             if msg_b.get('sender') == sender:
                 return match
-            else: return False
+            else:
+                return False
         return match
     return False
 
@@ -76,7 +75,6 @@ async def send(cmd: str, selector='@a', response=False):
             return None
 
 
-
 async def _wait_for_response(uuid):
     '''A helper function used by send() to wait for a response from Minecraft'''
     global msg
@@ -98,7 +96,7 @@ async def mineproxy(websocket):
         msg = json.loads(msg)
         msg_b = msg['body']
         with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/full_log.txt', 'a') as f:
-                f.write(f'{msg}\n')
+            f.write(f'{msg}\n')
         if msg['header'].get('eventName') == 'PlayerMessage':
             with open(f'{os.path.dirname(os.path.abspath(inspect.getframeinfo(inspect.currentframe()).filename))}/log.txt', 'a') as f:
                 f.write(f'{msg}\n')

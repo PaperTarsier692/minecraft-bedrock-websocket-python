@@ -1,4 +1,4 @@
-'''This is the simplest usage of the standard code.'''
+'''A simple timer.'''
 
 import re  # Filter Emojis, Commands
 import json  # JSON Data for sending and recieving WebSocket Data
@@ -103,8 +103,6 @@ async def mineproxy(websocket):
             elif cmd('!timer end'):
                 timers.pop(msg_b.get('sender'))
 
-            
-
 
 async def init_websocket():
     '''Initialises the WebSocket and runs some misc things, like copying the command in the clipboard'''
@@ -124,6 +122,7 @@ async def init_websocket():
     print('Ready')
     await asyncio.Future()
 
+
 def timer():
     global running
     running = False
@@ -135,9 +134,11 @@ def timer():
             timers[key] = value + 1
             minutes, seconds = divmod((value + 1), 60)
             hours, minutes = divmod(minutes, 60)
-            zeit = "§4{:02d}§r:§e{:02d}§r:§a{:02d}".format(hours, minutes, seconds)
+            zeit = "§4{:02d}§r:§e{:02d}§r:§a{:02d}".format(
+                hours, minutes, seconds)
             asyncio.run(send(f'/title {key} actionbar {zeit}'))
         time.sleep(1)
+
 
 def main():
     '''The function starting the setup and the 2 threads for Minecraft and Discord'''
